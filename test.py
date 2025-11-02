@@ -1,8 +1,6 @@
-import os
 import random
-from typing import List, Tuple
 
-""" KODOWANIE / DEKODOWANIE """
+""" CODING / DECODING """
 
 def pack (x1: int, x2: int) -> int:
     #x1 i x2 z zakresu [0..31] połączone razem
@@ -13,7 +11,7 @@ def pack (x1: int, x2: int) -> int:
         print (f"Wewnątrz funkcji pack, nieprawidłowe dane wejściowe. {e}")
     return (x1 << 5 | x2)
 
-def unpack (chromosome: int) -> Tuple [int, int]:
+def unpack (chromosome: int) -> tuple [int, int]:
     try:
         if chromosome >= 1024 or chromosome < 0:
             print (f"Wewnątrz funkcji unpack, zbyt duża wartość wejściowa chromosome: {chromosome}. Kod zostanie wykonany dalej.") 
@@ -34,35 +32,102 @@ def g (chromosome: int) -> int:
 
 """ ROULETTE SELECTION """
 
-def roulette_select (population: list[int], count: int, return_counts = False):
-
-    fit_list = [g(y) for y in population]
-    total = sum (fit_list)
+def roulette_select (population: list[int], count: int) -> list[int]:
+    fittness_list = [g(y) for y in population]
+    total = sum (fittness_list)
 
     if total == 0: # jeżeli wszystkie dają różnicę zero, wtedy wybierz losowo
         return random.choices (population, k = count)
 
-    fits_accumulated = []
+    fittness_accumulated = []
     s = 0
-    for fit in fit_list:
+    for fit in fittness_list:
         s+=fit
-        fits_accumulated.append(s)
-    
-    # print (f"Szanse na wylosowanie to:")
-    # for element in fit_list:
-    #     print (element/total)
+        fittness_accumulated.append(s)
 
     selected = []
     for _ in range (count):
         r = random.randint (0, total)
-        for i, accumulation in enumerate (fits_accumulated):
+        for i, accumulation in enumerate (fittness_accumulated):
             if r <= accumulation:
                 selected.append(population[i])
                 break
 
     return selected
 
-if __name__ == "__main__":
+""" CROSSOVER SECTION """
+
+def crossover_pair (a: int, b: int, cut: int) -> tuple [int, int]:
+    """
+        cut_left ∈ [1..9], licząc od LEWEJ. Np. cut=3: |xxx|xxxxxxx
+    """
+    left_bits = 10 - cut
+    right_mask = (1 << left_bits) - 1
+    left_mask = 0b11_1111_1111
+    ###    11_1111_1111 ^ np. 00_0000_0111 = 11_1111_1000
+    left_mask = left_mask ^ right_mask
+    c1 = (a & left_mask) | (b & right_mask)
+    c1 = c1 & 0b11_1111_1111 # dla pewności że wynik ma 10 bitów
+    c2 = (b & left_mask) | (a & right_mask)
+    c2 = c2 & 0b11_1111_1111 # dla pewności że wynik ma 10 bitów
+    return c1, c2
+
+def one_point_crossover (population: list[int], cross_propability: float = 0.5
+                         ) -> list [int]:
+    sh = population[:] # klonowanie
+    random.shuffle(sh)
+    offspring = []
+    for i in range(0,len(sh),2):
+        a = sh[i]
+        # w razie przekręcenia licznika, modulo sparuje ostatni z pierwszym
+        b = sh[(i+1) % len(sh)]
+        if random.random() < cross_propability:
+            cut = random.randint(1,9)
+            c1, c2 = crossover_pair (a, b, cut)
+            offspring.append([c1, c2])
+        else:
+            offspring.append([a, b])
+    return offspring 
+
+""" MUTATION """
+def mutate (chromosome: int, mutation_propability: float = 0.02) -> int:
+    c = chromosome
+    for i in range(10):
+        if random.random() < mutation_propability:
+            # podmiana 1 bitu przez XOR
+            c = c ^ (1 << i)
+
+    return c
+
+def mutate_population (population: list[int], mutation_propability: float = 0.02
+                       ) -> list[int]:
+    out = []
+    for chromosome in population:
+        out.append(mutate (chromosome, mutation_propability))
+    return out
+
+""" DESCRIBE VALUES """
+
+def print_binary (value: int) -> str:
+    return "{:10b}".format(value)
+
+def describe_population (population: list[int]) -> str:
+    lines = []
+    s = 0
+    for i, chromosome in enumerate(population, 1):
+        x1, x2 = unpack(chromosome)
+        fc, gc = f(chromosome), g(chromosome)
+        s += gc
+        lines.append(
+            f"{i:>2}. bits={print_binary(chromosome)} (x1,x2)=({x1:>2},{x2:>2})  f={fc:>3}  g={gc:>3}")
+    lines.append(f"sum g = {s}")
+    return "\n".join(lines)
+
+def genetic_algorithm (
+        generations: int = 100,
+        cross_propability: float = 0.5,
+        mutation_propability: float = 0.02
+    ):
     population = [
         0b1000110000,
         0b1010110101,
@@ -70,8 +135,13 @@ if __name__ == "__main__":
         0b0000100001,
         0b0001100011
         ]
-    population.sort()
-    print (population)
-    print(roulette_select (population, 4))
-    # print ("{:10b}".format(pack(27,22))) # drukuj binarny wynik: 10 znaków
-    # run_ga(generations = 100, p_cross = 0.5, p_mut = 0.02, trace_first = 1)
+    
+    for gen in range(generations):
+        # 1. Reprodukcja ruletką:
+        selected = roulette_select (population, len(population))
+        # 2. Krzyżowanie:
+        crossed = one_point_crossover (selected, cross_propability = cross_propability)
+        # 3. Mutacja:
+        population = mutate_population (crossed, mutation_propability=mutation_propability)
+if __name__ == "__main__":
+    genetic_algorithm(generations = 100, cross_propability = 0.75, mutation_propability = 0.02)
