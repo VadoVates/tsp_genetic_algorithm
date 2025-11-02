@@ -16,8 +16,8 @@ def euc_2d(result:float):
 def att(x1:int, y1:int, x2:int, y2:int):
     xd = x1 - x2
     yd = y1 - y2
-    r = ((xd*xd - yd*yd) / 10.0) ** 0.5
+    r = ((xd*xd + yd*yd)/10.0) ** 0.5   # zgodnie z algorytmem problemu tsp dodane dzielenie przez 10 celem skalowania dużych odległości
     t = euc_2d(r)
     return t
- 
-print (euc_2d(0))
+
+print (att(0,0,200,200))
