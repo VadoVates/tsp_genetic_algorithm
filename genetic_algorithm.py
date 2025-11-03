@@ -1,3 +1,10 @@
+"""
+genetic_algorithm.py – pętla GA: inicjalizacja populacji,
+selekcja, krzyżowanie, mutacja, elityzm,
+ocena fitness (używa tsp_problem.tour_length).
+Zwraca najlepszą trasę i historię postępu.
+"""
+
 def euc_2d(result:float):
     try:
         if result > 0:

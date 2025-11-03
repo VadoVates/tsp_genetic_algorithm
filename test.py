@@ -1,3 +1,7 @@
+"""
+ROZWIĄZANIE PRZYKŁADOWEGO ZADANIA Z MODUŁU 2.
+"""
+
 import random
 
 """ CODING / DECODING """
