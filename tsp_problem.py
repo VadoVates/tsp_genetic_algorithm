@@ -44,7 +44,11 @@ class TSPProblem:
             return att (x1, y1, x2, y2)
         if self.problem_edge_weight_type == "EUC_2D":
             return euc_2d (x1, y1, x2, y2)
-        
+    
+    def optimal_tour (self, solution_path = "data/att48.opt.tour") -> list[int]:
+        solution = tsplib95.load(solution_path)
+        return solution.tours[0]
+
     def tour_length (self, tour: list[int]) -> int:
         total = 0
         """

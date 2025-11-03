@@ -28,27 +28,35 @@ def rank_select (population: list[int], population_size: int) -> list[int]:
     return (sorted(population, key=g, reverse=True) [:population_size])
 
 """ TOURNAMENT SELECTION """
-# IN PROGRESS
+def tournament_select (population: list[int], tournament_size: int = 3) -> int:
+    if not population:
+        raise ValueError ("Population is empty")
+    if not (1 <= tournament_size <= len(population)):
+        raise ValueError("Invalid tournament size")
+
+    contenders = random.sample(population, tournament_size)
+    winner = max (contenders, key=g)
+    return winner
 
 """ ROULETTE SELECTION """
 
 def roulette_select (population: list[int]) -> list[int]:
-    fittness_list = [g(y) for y in population]
-    total = sum (fittness_list)
+    fitness_list = [g(chromosome) for chromosome in population]
+    total = sum (fitness_list)
 
     if total == 0: # jeżeli wszystkie dają różnicę zero, wtedy wybierz losowo
         return random.choices (population, k = len(population))
 
-    fittness_accumulated = []
+    fitness_accumulated = []
     s = 0
-    for fit in fittness_list:
+    for fit in fitness_list:
         s+=fit
-        fittness_accumulated.append(s)
+        fitness_accumulated.append(s)
 
     selected = []
     for _ in range (len(population)):
         r = random.randint (1, total)
-        for i, accumulation in enumerate (fittness_accumulated):
+        for i, accumulation in enumerate (fitness_accumulated):
             if r <= accumulation:
                 selected.append(population[i])
                 break
@@ -132,7 +140,7 @@ def genetic_algorithm (
         cross_propability: float = 0.5,
         mutation_propability: float = 0.02
     ):
-
+    best_overall = max (population, key=g)
     
     for gen in range(generations):
         # 1. Reprodukcja ruletką:
