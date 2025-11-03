@@ -7,22 +7,11 @@ import random
 """ CODING / DECODING """
 
 def pack (x1: int, x2: int) -> int:
-    #x1 i x2 z zakresu [0..31] połączone razem
-    try:
-        if x1 > 31 or x2 > 31 or x1 < 0 or x2 < 0:
-            print (f"Wewnątrz funkcji pack, zła wartość którejś zmiennej. x1: {x1}, x2: {x2}.")
-    except Exception as e:
-        print (f"Wewnątrz funkcji pack, nieprawidłowe dane wejściowe. {e}")
     return (x1 << 5 | x2)
 
 def unpack (chromosome: int) -> tuple[int, int]:
-    try:
-        if chromosome >= 1024 or chromosome < 0:
-            print (f"Wewnątrz funkcji unpack, zbyt duża wartość wejściowa chromosome: {chromosome}. Kod zostanie wykonany dalej.") 
-        x2 = chromosome & 0b11111
-        x1 = (chromosome >> 5) & 0b11111
-    except Exception as e:
-        print (f"Wewnątrz funkcji unpack, nieprawidłowe dane wejściowe. {e}")
+    x2 = chromosome & 0b11111
+    x1 = (chromosome >> 5) & 0b11111
     return x1, x2
 
 """ FITNESS / FUNKCJA CELU """
