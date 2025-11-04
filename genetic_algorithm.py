@@ -76,10 +76,10 @@ def order_crossover (parent1: list[int], parent2: list[int]) -> tuple[list[int],
     PRZYKŁADOWE DZIAŁANIE:
     start: 8
     end: 10
-    child: [None, None, None, None, None, None, None, None, 8, 9]
-    child: [None, None, None, None, None, None, None, None, 6, 4]
     Rodzic 1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     Rodzic 2: [3, 7, 5, 1, 9, 0, 2, 8, 6, 4]
+    child: [None, None, None, None, None, None, None, None, 8, 9]
+    child: [None, None, None, None, None, None, None, None, 6, 4]
     Dziecko 1: [3, 7, 5, 1, 0, 2, 6, 4, 8, 9]
     Dziecko 2: [0, 1, 2, 3, 5, 7, 8, 9, 6, 4]
     """

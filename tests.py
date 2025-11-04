@@ -123,9 +123,7 @@ def test_order_crossover():
     assert is_permutation(c2, p1)
 
 def test_all():
-    """Uruchom wszystkie testy"""
-    random.seed()  # dla powtarzalności
-    
+    """Uruchom wszystkie testy"""    
     test_initialization()
     test_fitness()
     test_rank_selection()
@@ -137,4 +135,7 @@ def test_all():
 
 # Uruchom testy
 if __name__ == "__main__":
+    random.seed()
     test_all()
+    
+    #test_order_crossover()
