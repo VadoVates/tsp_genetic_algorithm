@@ -8,50 +8,45 @@ Zwraca najlepszą trasę i historię postępu.
 import random
 from tsp_problem import TSPProblem
 
-""" CODING / DECODING """
+""" INICJALIZACJA POPULACJI """
+def create_random_permutation (cities: list[int]) -> list[int]:
+    tour = cities[:] #kopia
+    random.shuffle(tour)
+    return tour
 
-def pack (x1: int, x2: int) -> int:
-    return (x1 << 5 | x2)
-
-def unpack (coordinates: int) -> tuple[int, int]:
-    x2 = coordinates & 0b11111
-    x1 = (coordinates >> 5) & 0b11111
-    return x1, x2
-
-""" TWORZENIE LOSOWYCH PERMUTACJI """
-def create_random_permutation (tour: list[int]) -> list[int]:
-    cities = tour[:] #kopia
-    random.shuffle(cities)
-    return cities
-
-
+def initialize_population (cities: list[int], population_size: int) -> list[list[int]]:
+    return [create_random_permutation(cities) for _ in range (population_size)]
 
 """ FITNESS / FUNKCJA CELU """
-def fitness (tour: list[int]) -> int:
-    return TSPProblem.tour_length(tour)
+def fitness (tour: list[int], tsp: TSPProblem) -> int:
+    return tsp.tour_length(tour)
 
-""" RANK SELECTION """
-def rank_select (tour: list[int], tour_length: int) -> list[int]:
-    return (sorted(tour, key=fitness) [:tour_length])
+def fitness_normalized (population: list[list[int]], tsp: TSPProblem):
+    
 
-""" TOURNAMENT SELECTION """
-def tournament_select (tour: list[int], tournament_size: int = 3) -> int:
-    if not tour:
-        raise ValueError ("tour is empty")
-    if not (1 <= tournament_size <= len(tour)):
+""" SELECTION """
+def rank_select (population: list[list[int]], rank_size: int,
+                 tsp: TSPProblem) -> list[list[int]]:
+    return (sorted(population, key=lambda tour: fitness(tour, tsp))
+            [:rank_size])
+
+def tournament_select (population: list[list[int]], tsp: TSPProblem,
+                       tournament_size: int = 3) -> list[int]:
+    if not population:
+        raise ValueError ("population is empty")
+    if not (1 <= tournament_size <= len(population)):
         raise ValueError("Invalid tournament size")
 
-    contenders = random.sample(tour, tournament_size)
-    winner = min (contenders, key=fitness)
-    return winner
+    contenders = random.sample(population, tournament_size)
+    shortest_tour = min (contenders, key=lambda tour: fitness(tour, tsp))
+    return shortest_tour
 
-""" ROULETTE SELECTION """
-
-def roulette_select (tour: list[int]) -> list[int]:
-    fitness_list = [fitness(coordinates) for coordinates in tour]
+def roulette_select (population: list[list[int]], tsp: TSPProblem,
+                     roulette_selection_size: int) -> list[int]:
+    fitness_list = [fitness(tour, tsp) for tour in population]
     total = sum (fitness_list)
 
-    if total == 0: # jeżeli wszystkie dają różnicę zero, wtedy wybierz losowo
+    if total == 0:
         return random.choices (tour, k = len(tour))
 
     fitness_accumulated = []
@@ -142,12 +137,25 @@ def describe_population (tour: list[int]) -> str:
 """ MAIN ALGORITHM """
 
 def genetic_algorithm (
-        tour: list[int],
-        generations: int = 100,
+        tsp: TSPProblem,
+        population_size: int = 100,
+        generations: int = 500,
+        rank_size: int = 30,
+        roulette_selection_size: int = 80,
         cross_propability: float = 0.5,
-        mutation_propability: float = 0.02
-    ):
-    best_overall = min (tour, key=fitness)
-    
-    for gen in range(generations):
-        print()
+        mutation_propability: float = 0.02,
+        elitism_count: int = 2,
+        tournament_size: int = 3,
+        verbose: bool = True):
+    cities = list(tsp.coordinates.keys())
+    initialize_population (cities=cities, population_size=population_size)
+
+    for _ in range (generations):
+        if verbose:
+            print("".format())
+
+problem = TSPProblem("data/att48.tsp")
+genetic_algorithm (problem, population_size=100, generations=500, rank_size=30,
+                  roulette_selection_size = 80, cross_propability=0.8,
+                  mutation_propability=0.1, elitism_count=2, tournament_size=3,
+                  verbose=True)
