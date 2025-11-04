@@ -163,6 +163,7 @@ if __name__ == "__main__":
         0b1010110101,
         0b0010100101,
         0b0000100001,
-        0b0001100011
+        0b0001100011,
+        0b0000011111
     ]
     genetic_algorithm(population, generations = 100, cross_propability = 0.75, mutation_propability = 0.02)

@@ -108,6 +108,20 @@ def test_roulette_selection():
         print(f"Błąd w roulette_select: {e}")
     print()
 
+def is_permutation(t, base):
+    return len(t) == len(base) and set(t) == set(base)
+
+def test_order_crossover():
+    p1 = [0,1,2,3,4,5,6,7,8,9]
+    p2 = [3,7,5,1,9,0,2,8,6,4]
+    c1, c2 = order_crossover(p1, p2)
+    print(f"Rodzic 1: {p1}")
+    print(f"Rodzic 2: {p2}")
+    print(f"Dziecko 1: {c1}")
+    print(f"Dziecko 2: {c2}")
+    assert is_permutation(c1, p1)
+    assert is_permutation(c2, p1)
+
 def test_all():
     """Uruchom wszystkie testy"""
     random.seed()  # dla powtarzalności
@@ -117,6 +131,7 @@ def test_all():
     test_rank_selection()
     test_tournament_selection()
     test_roulette_selection()
+    test_order_crossover()
     
     print("=== WSZYSTKIE TESTY ZAKOŃCZONE ===")
 
