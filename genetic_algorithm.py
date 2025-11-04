@@ -9,6 +9,7 @@ import random
 from tsp_problem import TSPProblem
 
 """ INICJALIZACJA POPULACJI """
+
 def create_random_permutation (cities: list[int]) -> list[int]:
     tour = cities[:] #kopia
     random.shuffle(tour)
@@ -18,13 +19,17 @@ def initialize_population (cities: list[int], population_size: int) -> list[list
     return [create_random_permutation(cities) for _ in range (population_size)]
 
 """ FITNESS / FUNKCJA CELU """
+
+# im mniej tym lepiej
 def fitness (tour: list[int], tsp: TSPProblem) -> int:
     return tsp.tour_length(tour)
 
-def fitness_normalized (population: list[list[int]], tsp: TSPProblem):
-    
+# odwrócenie logiki -> im mniej kilometrów, tym wyższy wynik
+def fitness_normalized (tour: list[int], tsp: TSPProblem, worst_score: int):
+    return (worst_score - fitness(tour, tsp) + 1)
 
 """ SELECTION """
+
 def rank_select (population: list[list[int]], rank_size: int,
                  tsp: TSPProblem) -> list[list[int]]:
     return (sorted(population, key=lambda tour: fitness(tour, tsp))
@@ -42,25 +47,23 @@ def tournament_select (population: list[list[int]], tsp: TSPProblem,
     return shortest_tour
 
 def roulette_select (population: list[list[int]], tsp: TSPProblem,
-                     roulette_selection_size: int) -> list[int]:
-    fitness_list = [fitness(tour, tsp) for tour in population]
-    total = sum (fitness_list)
-
-    if total == 0:
-        return random.choices (tour, k = len(tour))
+                     roulette_selection_size: int) -> list[list[int]]:
+    contenders = random.sample(population, roulette_selection_size)
+    worst_score = max(fitness(tour, tsp) for tour in contenders)
+    fitness_list = [fitness_normalized(tour, tsp, worst_score) for tour in contenders]
 
     fitness_accumulated = []
-    s = 0
+    total = 0
     for fit in fitness_list:
-        s+=fit
-        fitness_accumulated.append(s)
+        total+=fit
+        fitness_accumulated.append(total)
 
     selected = []
-    for _ in range (len(tour)):
+    for _ in range (len(contenders)):
         r = random.randint (1, total)
         for i, accumulation in enumerate (fitness_accumulated):
             if r <= accumulation:
-                selected.append(tour[i])
+                selected.append(contenders[i])
                 break
 
     return selected
@@ -117,23 +120,6 @@ def mutate_population (tour: list[int], mutation_propability: float = 0.02
         out.append(mutate (coordinates, mutation_propability))
     return out
 
-""" DESCRIBE VALUES """
-
-def print_binary (value: int) -> str:
-    return format(value & 0x3FF, '010b')
-
-def describe_population (tour: list[int]) -> str:
-    lines = []
-    s = 0
-    for i, coordinates in enumerate(tour, 1):
-        x1, x2 = unpack(coordinates)
-        fc = fitness(coordinates)
-        s += fc
-        lines.append(
-            f"{i:>2}. bits={print_binary(coordinates)} (x1,x2)=({x1:>2},{x2:>2})  f={fc:>3}")
-    lines.append(f"sum g = {s}")
-    return "\n".join(lines)
-
 """ MAIN ALGORITHM """
 
 def genetic_algorithm (
@@ -148,11 +134,12 @@ def genetic_algorithm (
         tournament_size: int = 3,
         verbose: bool = True):
     cities = list(tsp.coordinates.keys())
-    initialize_population (cities=cities, population_size=population_size)
+    population = initialize_population (cities=cities, population_size=population_size)
 
-    for _ in range (generations):
-        if verbose:
-            print("".format())
+    # for _ in range (generations):
+    #     if verbose:
+    #         print("".format())
+
 
 problem = TSPProblem("data/att48.tsp")
 genetic_algorithm (problem, population_size=100, generations=500, rank_size=30,
