@@ -602,14 +602,11 @@ class TestSwapMutation:
             mutated = swap_mutation(tour[:], mutation_propability=0.3)
             assert sorted(mutated) == sorted(tour)
     
-    def test_swap_mutation_modifies_inplace(self):
-        """Test czy mutacja modyfikuje in-place (zgodnie z implementacją)"""
+    def test_swap_mutation_returns_new_list(self):
         tour = [0, 1, 2, 3, 4]
-        original_id = id(tour)
-        
         result = swap_mutation(tour, mutation_propability=0.5)
-        
-        assert id(result) == original_id
+        assert result is not tour  # ma być nowy obiekt
+        assert set(result) == set(tour)
     
     def test_swap_mutation_large_tour(self):
         """Test mutacji dla dużej trasy"""
@@ -677,6 +674,59 @@ class TestSwapMutatePopulation:
         for tour in mutated_pop:
             assert is_valid_permutation(tour, cities)
 
+class TestInversionMutation:
+    """Testy mutacji inwersji"""
+
+    def test_inversion_mutation_preserves_permutation(self):
+        tour = list(range(10))
+        mutated = inversion_mutation(tour[:], mutation_propability=1.0)
+        assert len(mutated) == len(tour)
+        assert set(mutated) == set(tour)
+
+    def test_inversion_mutation_zero_probability(self):
+        tour = [0, 1, 2, 3, 4]
+        mutated = inversion_mutation(tour[:], mutation_propability=0.0)
+        assert mutated == tour
+
+    def test_inversion_mutation_small_tour(self):
+        tour = [0, 1]
+        mutated = inversion_mutation(tour[:], mutation_propability=1.0)
+        assert set(mutated) == {0, 1}
+
+    def test_inversion_mutation_changes_order(self):
+        random.seed(42)
+        tour = list(range(10))
+        changed = False
+        for _ in range(10):
+            mutated = inversion_mutation(tour[:], mutation_propability=1.0)
+            if mutated != tour:
+                changed = True
+                break
+        assert changed
+
+class TestScrambleMutation:
+    """Testy mutacji scramble"""
+
+    def test_scramble_mutation_preserves_permutation(self):
+        tour = list(range(10))
+        mutated = scramble_mutation(tour[:], mutation_propability=1.0)
+        assert len(mutated) == len(tour)
+        assert set(mutated) == set(tour)
+
+    def test_scramble_mutation_zero_probability(self):
+        tour = [0, 1, 2, 3]
+        mutated = scramble_mutation(tour[:], mutation_propability=0.0)
+        assert mutated == tour
+
+    def test_scramble_mutation_small_tour(self):
+        tour = [0, 1]
+        mutated = scramble_mutation(tour[:], mutation_propability=1.0)
+        assert set(mutated) == {0, 1}
+
+    def test_scramble_mutation_randomness(self):
+        tour = list(range(10))
+        results = {tuple(scramble_mutation(tour[:], mutation_propability=1.0)) for _ in range(10)}
+        assert len(results) > 1
 
 # ============================================================================
 # TESTY EDGE CASES I INTEGRACYJNE
@@ -1084,3 +1134,20 @@ class TestPartiallyMappedCrossover:
         
         assert is_valid_permutation(c1, p1)
         assert is_valid_permutation(c2, p2)
+
+
+# ============================================================================
+# TESTY GENETIC ALGORITHM
+# ============================================================================
+
+class TestGeneticAlgorithmFunction:
+    """Test funkcji głównej genetic_algorithm"""
+
+    def test_genetic_algorithm_runs_and_returns_population(self):
+        tsp = TSPProblem("data/att48.tsp")
+        result = genetic_algorithm(tsp, population_size=10, generations=1)
+        assert isinstance(result, list)
+        assert len(result) == 10
+        for tour in result:
+            assert isinstance(tour, list)
+            assert len(set(tour)) == len(tour)

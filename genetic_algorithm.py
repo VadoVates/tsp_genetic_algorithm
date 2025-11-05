@@ -30,8 +30,9 @@ def fitness_normalized (tour: list[int], tsp: TSPProblem, worst_score: int):
 
 """ SELECTION """
 
-def rank_select (population: list[list[int]], rank_size: int,
+def rank_select (population_in: list[list[int]], rank_size: int,
                  tsp: TSPProblem) -> list[list[int]]:
+    population = population_in[:]
     return (sorted(population, key=lambda tour: fitness(tour, tsp))
             [:rank_size])
 
@@ -207,21 +208,49 @@ def edge_recombination_crossover(parent1: list[int], parent2: list[int]) -> tupl
 
 """ MUTATION """
 
-def swap_mutation (tour: list[int], mutation_propability: float = 0.1) -> list[int]:
+def swap_mutation (tour_in: list[int], mutation_propability: float = 0.1) -> list[int]:
+    tour = tour_in[:]
     pick = None
-    mutation_propability*=2
     for i in range(len(tour)):
         if random.random() < mutation_propability:
-            if pick is None:
-                pick = i
-            else:
-                tour[pick], tour[i] = tour [i], tour[pick]
-                pick = None
+            pick = random.randint(0,len(tour)-1)
+            tour [pick], tour[i] = tour[i], tour[pick]
     return tour
 
 def swap_mutate_population (population: list[list[int]], mutation_propability: float = 0.1
                        ) -> list[list[int]]:
     return [swap_mutation(tour, mutation_propability) for tour in population]
+
+def inversion_mutation (tour_in: list[int], mutation_propability: float = 0.1) -> list[int]:
+    tour = tour_in[:]
+    if random.random() < mutation_propability:
+        tour_size = len(tour)
+        if tour_size < 2:
+            return tour
+        
+        start = random.randint(0,tour_size-1)
+        end = random.randint(start+1, tour_size)
+
+        tour[start:end] = reversed(tour[start:end])
+
+    return tour
+
+def scramble_mutation (tour_in: list[int], mutation_propability: float = 0.1) -> list[int]:
+    tour = tour_in[:]
+    if random.random() < mutation_propability:
+        tour_size = len(tour)
+        if tour_size < 2:
+            return tour
+        
+        start = random.randint(0,tour_size-1)
+        end = random.randint(start+1, tour_size)
+
+        segment = tour[start:end]
+        random.shuffle(segment)
+        tour[start:end] = segment
+
+    return tour
+
 
 def genetic_algorithm (
         tsp: TSPProblem,
@@ -236,6 +265,7 @@ def genetic_algorithm (
         ):
     cities = list(tsp.coordinates.keys())
     population = initialize_population (cities=cities, population_size=population_size)
+    return rank_select(population_in=population, rank_size=population_size, tsp=tsp)
 
 problem = TSPProblem("data/att48.tsp")
 genetic_algorithm (problem, population_size=100, generations=500, rank_size=30,
