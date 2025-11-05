@@ -85,14 +85,11 @@ def order_crossover (parent1: list[int], parent2: list[int]) -> tuple[list[int],
     Dziecko 2: [0, 1, 2, 3, 5, 7, 8, 9, 6, 4]
     """
     start = random.randint(0,parent_size-1)
-    print(f"start: {start}")
     end = random.randint(start+1,parent_size)
-    print(f"end: {end}")
 
     def make_a_child_ox(pA: list[int], pB:list[int]) -> list[int]:
         child = [None] * parent_size
         child[start:end] = pA[start:end]
-        print(f"child: {child}")
         taken = set(child[start:end])
 
         # modulo "przewija" indeksy od początku listy
@@ -129,61 +126,102 @@ def partially_mapped_crossover(parent1: list[int], parent2: list[int]) -> tuple[
     """
 
     start = random.randint(0,parent_size-1)
-    print(f"start: {start}")
     end = random.randint(start+1,parent_size)
-    print(f"end: {end}")
 
-    def make_a_child_pmx(pA: list[int], pB:list[int]) -> list[int]:
+    def lets_make_a_baby_pmx(pA: list[int], pB:list[int]) -> list[int]:
         child = [None] * parent_size
         child[start:end] = pA[start:end]
-        print(f"child: {child}")
-        # taken = set(child[start:end])
+
         for i in range (start, end):
             gene_from_pB = pB[i]
 
             if gene_from_pB in child[start:end]:
-                print(f"  skip: pB[{i}]={gene_from_pB} już jest w segmencie")
                 continue
             
             position = i
             while child[position] is not None:
                 value_in_child = child[position]
                 position = pB.index(value_in_child)
-                print(f"    mapowanie: {gene_from_pB} -> pozycja {position} (bo child[{i}]={pA[i]} jest w pB na pozycji {position})")
 
             child[position] = gene_from_pB
-            print(f"  map: pB[{i}]={gene_from_pB} -> child[{position}]")
 
         for i in range (parent_size):
             if child[i] is None:
                 child[i] = pB[i]
-                print (f"  fill: child[{i}] = {pB[i]}")
 
         return child
 
-    child1 = make_a_child_pmx(parent1, parent2)
-    child2 = make_a_child_pmx(parent2, parent1)
+    child1 = lets_make_a_baby_pmx(parent1, parent2)
+    child2 = lets_make_a_baby_pmx(parent2, parent1)
     return child1, child2
 
-# """ MUTATION """
+def edge_recombination_crossover(parent1: list[int], parent2: list[int]) -> tuple[list[int], list[int]]:
+    parent_size = len(parent1)
+    assert len(parent2) == parent_size and len(set(parent1)) == parent_size and len(set(parent2)) == parent_size
 
-# def mutate (coordinates: int, mutation_propability: float = 0.02) -> int:
-#     c = coordinates
-#     for i in range(10):
-#         if random.random() < mutation_propability:
-#             # podmiana 1 bitu przez XOR
-#             c = c ^ (1 << i)
+    def build_edge_table(pA: list[int], pB: list[int]) -> dict[int, set[int]]:
+        # utwórz pusty zbio©y z kluczem każdeho miasta
+        edge_table = {city: set() for city in pA}
 
-#     return c
+        def find_neighbours (parent) -> dict[int, set[int]]:
+            for i in range(parent_size):
+                current = parent[i]
+                prev_city = parent[(i-1) % parent_size]
+                next_city = parent[(i+1) % parent_size]
+                edge_table[current].add(prev_city)
+                edge_table[current].add(next_city)
+        find_neighbours(pA)
+        find_neighbours(pB)
 
-# def mutate_population (tour: list[int], mutation_propability: float = 0.02
-#                        ) -> list[int]:
-#     out = []
-#     for coordinates in tour:
-#         out.append(mutate (coordinates, mutation_propability))
-#     return out
+        return edge_table
+    def give_me_a_child_erx(pA: list[int], pB: list[int]) -> list[int]:
+        edge_table = build_edge_table (pA, pB)
+        child: list[int] = []
 
-""" MAIN ALGORITHM """
+        # bieremy randomowe miasto z piyrszygo fatra/matuli
+        current = random.choice(pA)  
+        while len(child) < parent_size:
+            child.append(current)
+
+            # wyciepujemy `current` z wszystkich list sąsiedzkich
+            for city in edge_table:
+                edge_table[city].discard(current)
+
+            if not edge_table[current]:
+                remaining = [c for c in pA if c not in child]
+                if not remaining:
+                    break
+                current = random.choice (remaining)
+                continue
+            neighbours = edge_table[current]
+            min_edges = min(len(edge_table[n]) for n in neighbours)
+            candidates = [n for n in neighbours if len(edge_table[n]) == min_edges]
+
+            current = random.choice(candidates)
+        return child
+
+    child1 = give_me_a_child_erx(parent1, parent2)
+    child2 = give_me_a_child_erx(parent2, parent1)
+
+    return child1, child2
+
+""" MUTATION """
+
+def swap_mutation (tour: list[int], mutation_propability: float = 0.1) -> list[int]:
+    pick = None
+    mutation_propability*=2
+    for i in range(len(tour)):
+        if random.random() < mutation_propability:
+            if pick is None:
+                pick = i
+            else:
+                tour[pick], tour[i] = tour [i], tour[pick]
+                pick = None
+    return tour
+
+def swap_mutate_population (population: list[list[int]], mutation_propability: float = 0.1
+                       ) -> list[list[int]]:
+    return [swap_mutation(tour, mutation_propability) for tour in population]
 
 def genetic_algorithm (
         tsp: TSPProblem,
@@ -193,19 +231,13 @@ def genetic_algorithm (
         roulette_selection_size: int = 80,
         cross_propability: float = 0.5,
         mutation_propability: float = 0.02,
-        elitism_count: int = 2,
-        tournament_size: int = 3,
-        verbose: bool = True):
+        elitism_count: float = 0.2,
+        tournament_size: int = 3
+        ):
     cities = list(tsp.coordinates.keys())
     population = initialize_population (cities=cities, population_size=population_size)
-
-    # for _ in range (generations):
-    #     if verbose:
-    #         print("".format())
-
 
 problem = TSPProblem("data/att48.tsp")
 genetic_algorithm (problem, population_size=100, generations=500, rank_size=30,
                   roulette_selection_size = 80, cross_propability=0.8,
-                  mutation_propability=0.1, elitism_count=2, tournament_size=3,
-                  verbose=True)
+                  mutation_propability=0.1, elitism_count=0.2, tournament_size=3)
