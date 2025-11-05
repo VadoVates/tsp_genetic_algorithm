@@ -72,6 +72,7 @@ def roulette_select (population: list[list[int]], tsp: TSPProblem,
 
 def order_crossover (parent1: list[int], parent2: list[int]) -> tuple[list[int], list[int]]:
     parent_size = len(parent1)
+    assert len(parent2) == parent_size and len(set(parent1)) == parent_size and len(set(parent2)) == parent_size
     """
     PRZYKŁADOWE DZIAŁANIE:
     start: 8
@@ -88,7 +89,7 @@ def order_crossover (parent1: list[int], parent2: list[int]) -> tuple[list[int],
     end = random.randint(start+1,parent_size)
     print(f"end: {end}")
 
-    def make_a_child(pA: list[int], pB:list[int]) -> list[int]:
+    def make_a_child_ox(pA: list[int], pB:list[int]) -> list[int]:
         child = [None] * parent_size
         child[start:end] = pA[start:end]
         print(f"child: {child}")
@@ -106,42 +107,63 @@ def order_crossover (parent1: list[int], parent2: list[int]) -> tuple[list[int],
             index = (index + 1) % parent_size
         return child
     
-    child1 = make_a_child(parent1, parent2)
-    child2 = make_a_child(parent2, parent1)
+    child1 = make_a_child_ox(parent1, parent2)
+    child2 = make_a_child_ox(parent2, parent1)
 
     return child1, child2
 
-# def crossover_pair (a: int, b: int, cut: int) -> tuple [int, int]:
-#     """
-#         cut_left ∈ [1..9], licząc od LEWEJ. Np. cut=3: |xxx|xxxxxxx
-#     """
-#     left_bits = 10 - cut
-#     right_mask = (1 << left_bits) - 1
-#     left_mask = 0b11_1111_1111
-#     ###    11_1111_1111 ^ np. 00_0000_0111 = 11_1111_1000
-#     left_mask = left_mask ^ right_mask
-#     c1 = (a & left_mask) | (b & right_mask)
-#     c1 = c1 & 0b11_1111_1111 # dla pewności że wynik ma 10 bitów
-#     c2 = (b & left_mask) | (a & right_mask)
-#     c2 = c2 & 0b11_1111_1111 # dla pewności że wynik ma 10 bitów
-#     return c1, c2
+def partially_mapped_crossover(parent1: list[int], parent2: list[int]) -> tuple[list[int], list[int]]:
+    parent_size = len(parent1)
+    assert len(parent2) == parent_size and len(set(parent1)) == parent_size and len(set(parent2)) == parent_size
 
-# def one_point_crossover (tour: list[int], cross_propability: float = 0.5
-#                          ) -> list[int]:
-#     sh = tour[:] # klonowanie
-#     random.shuffle(sh)
-#     offspring: list[int] = []
-#     for i in range(0,len(sh),2):
-#         a = sh[i]
-#         # w razie przekręcenia licznika, modulo sparuje ostatni z pierwszym
-#         b = sh[(i+1) % len(sh)]
-#         if random.random() < cross_propability:
-#             cut = random.randint(1,9)
-#             c1, c2 = crossover_pair (a, b, cut)
-#             offspring += [c1, c2]
-#         else:
-#             offspring += [a, b]
-#     return offspring 
+    """
+    PRZYKŁADOWE DZIAŁANIE:
+    start: 8
+    end: 10
+    Rodzic 1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    Rodzic 2: [3, 7, 5, 1, 9, 0, 2, 8, 6, 4]
+    child: [None, None, None, None, None, None, None, None, 8, 9]
+    child: [None, None, None, None, None, None, None, None, 6, 4]
+    Dziecko 1: [3, 7, 5, 1, 4, 0, 2, 6, 8, 9]
+    Dziecko 2: [0, 1, 2, 3, 9, 5, 8, 7, 6, 4]
+    """
+
+    start = random.randint(0,parent_size-1)
+    print(f"start: {start}")
+    end = random.randint(start+1,parent_size)
+    print(f"end: {end}")
+
+    def make_a_child_pmx(pA: list[int], pB:list[int]) -> list[int]:
+        child = [None] * parent_size
+        child[start:end] = pA[start:end]
+        print(f"child: {child}")
+        # taken = set(child[start:end])
+        for i in range (start, end):
+            gene_from_pB = pB[i]
+
+            if gene_from_pB in child[start:end]:
+                print(f"  skip: pB[{i}]={gene_from_pB} już jest w segmencie")
+                continue
+            
+            position = i
+            while child[position] is not None:
+                value_in_child = child[position]
+                position = pB.index(value_in_child)
+                print(f"    mapowanie: {gene_from_pB} -> pozycja {position} (bo child[{i}]={pA[i]} jest w pB na pozycji {position})")
+
+            child[position] = gene_from_pB
+            print(f"  map: pB[{i}]={gene_from_pB} -> child[{position}]")
+
+        for i in range (parent_size):
+            if child[i] is None:
+                child[i] = pB[i]
+                print (f"  fill: child[{i}] = {pB[i]}")
+
+        return child
+
+    child1 = make_a_child_pmx(parent1, parent2)
+    child2 = make_a_child_pmx(parent2, parent1)
+    return child1, child2
 
 # """ MUTATION """
 
