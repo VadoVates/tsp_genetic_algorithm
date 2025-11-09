@@ -37,15 +37,22 @@ def rank_select (population_in: list[list[int]], rank_size: int,
             [:rank_size])
 
 def tournament_select (population: list[list[int]], tsp: TSPProblem,
-                       tournament_size: int = 3) -> list[int]:
+                       tournament_size: int = 3, selection_count: int = None) -> list[list[int]]:
     if not population:
         raise ValueError ("population is empty")
     if not (1 <= tournament_size <= len(population)):
         raise ValueError("Invalid tournament size")
+    
+    if selection_count is None:
+        selection_count = len(population)
 
-    contenders = random.sample(population, tournament_size)
-    shortest_tour = min (contenders, key=lambda tour: fitness(tour, tsp))
-    return shortest_tour
+    selected = []
+    for _ in range(selection_count):
+        contenders = random.sample(population, tournament_size)
+        shortest_tour = min (contenders, key=lambda tour: fitness(tour, tsp))
+        selected.append(shortest_tour)
+
+    return selected
 
 def roulette_select (population: list[list[int]], tsp: TSPProblem,
                      roulette_selection_size: int) -> list[list[int]]:
