@@ -160,8 +160,7 @@ def run_genetic_algorithm(
         if selection_method == "Rank Selection":
             selected = rank_select(selected_population, len(selected_population), tsp)
         elif selection_method == "Tournament Selection":
-            selected = [tournament_select(selected_population, tsp, tournament_size) 
-                       for _ in range(len(selected_population))]
+            selected = tournament_select(selected_population, tsp, tournament_size, len(selected_population))
         else:  # Roulette
             selected = roulette_select(selected_population, tsp, len(selected_population))
         
