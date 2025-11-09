@@ -1,3 +1,4 @@
 streamlit
 tsplib95
 pytest
+matplotlib

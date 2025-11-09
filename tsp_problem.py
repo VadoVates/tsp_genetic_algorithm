@@ -42,7 +42,7 @@ class TSPProblem:
         x2, y2 = self.coordinates[b]
         if self.problem.edge_weight_type == "ATT":
             return att (x1, y1, x2, y2)
-        if self.problem_edge_weight_type == "EUC_2D":
+        if self.problem.edge_weight_type == "EUC_2D":
             return euc_2d (x1, y1, x2, y2)
     
     def optimal_tour (self, solution_path = "data/att48.opt.tour") -> list[int]:
