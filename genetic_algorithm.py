@@ -210,11 +210,10 @@ def edge_recombination_crossover(parent1: list[int], parent2: list[int]) -> tupl
 
 def swap_mutation (tour_in: list[int], mutation_propability: float = 0.1) -> list[int]:
     tour = tour_in[:]
-    pick = None
-    for i in range(len(tour)):
-        if random.random() < mutation_propability:
-            pick = random.randint(0,len(tour)-1)
-            tour [pick], tour[i] = tour[i], tour[pick]
+    if random.random() < mutation_propability:
+        pick1 = random.randint(0, len(tour)-1)
+        pick2 = random.randint(0, len(tour)-1)
+        tour [pick1], tour[pick2] = tour[pick2], tour[pick1]
     return tour
 
 def inversion_mutation (tour_in: list[int], mutation_propability: float = 0.1) -> list[int]:
