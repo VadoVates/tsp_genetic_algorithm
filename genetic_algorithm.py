@@ -217,10 +217,6 @@ def swap_mutation (tour_in: list[int], mutation_propability: float = 0.1) -> lis
             tour [pick], tour[i] = tour[i], tour[pick]
     return tour
 
-def swap_mutate_population (population: list[list[int]], mutation_propability: float = 0.1
-                       ) -> list[list[int]]:
-    return [swap_mutation(tour, mutation_propability) for tour in population]
-
 def inversion_mutation (tour_in: list[int], mutation_propability: float = 0.1) -> list[int]:
     tour = tour_in[:]
     if random.random() < mutation_propability:
@@ -250,24 +246,3 @@ def scramble_mutation (tour_in: list[int], mutation_propability: float = 0.1) ->
         tour[start:end] = segment
 
     return tour
-
-
-def genetic_algorithm (
-        tsp: TSPProblem,
-        population_size: int = 100,
-        generations: int = 500,
-        rank_size: int = 30,
-        roulette_selection_size: int = 80,
-        cross_propability: float = 0.5,
-        mutation_propability: float = 0.02,
-        elitism_count: float = 0.2,
-        tournament_size: int = 3
-        ):
-    cities = list(tsp.coordinates.keys())
-    population = initialize_population (cities=cities, population_size=population_size)
-    return rank_select(population_in=population, rank_size=population_size, tsp=tsp)
-
-problem = TSPProblem("data/att48.tsp")
-genetic_algorithm (problem, population_size=100, generations=500, rank_size=30,
-                  roulette_selection_size = 80, cross_propability=0.8,
-                  mutation_propability=0.1, elitism_count=0.2, tournament_size=3)
