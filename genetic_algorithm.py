@@ -96,7 +96,7 @@ def order_crossover (parent1: list[int], parent2: list[int]) -> tuple[list[int],
     end = random.randint(start+1,parent_size)
 
     def make_a_child_ox(pA: list[int], pB:list[int]) -> list[int]:
-        child = [None] * parent_size
+        child = [-1] * parent_size
         child[start:end] = pA[start:end]
         taken = set(child[start:end])
 
@@ -137,7 +137,7 @@ def partially_mapped_crossover(parent1: list[int], parent2: list[int]) -> tuple[
     end = random.randint(start+1,parent_size)
 
     def lets_make_a_baby_pmx(pA: list[int], pB:list[int]) -> list[int]:
-        child = [None] * parent_size
+        child = [-1] * parent_size
         child[start:end] = pA[start:end]
 
         for i in range (start, end):
@@ -171,17 +171,19 @@ def edge_recombination_crossover(parent1: list[int], parent2: list[int]) -> tupl
         # utwórz pusty zbio©y z kluczem każdeho miasta
         edge_table = {city: set() for city in pA}
 
-        def find_neighbours (parent) -> dict[int, set[int]]:
+        def find_neighbours (parent):
             for i in range(parent_size):
                 current = parent[i]
                 prev_city = parent[(i-1) % parent_size]
                 next_city = parent[(i+1) % parent_size]
                 edge_table[current].add(prev_city)
                 edge_table[current].add(next_city)
+        
         find_neighbours(pA)
         find_neighbours(pB)
 
         return edge_table
+    
     def give_me_a_child_erx(pA: list[int], pB: list[int]) -> list[int]:
         edge_table = build_edge_table (pA, pB)
         child: list[int] = []

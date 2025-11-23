@@ -31,7 +31,7 @@ class TSPProblem:
         self.problem = tsplib95.load(problem_path)
         self.coordinates = self._extract_coordinates()
 
-    def _extract_coordinates(self) -> dict[int, tuple[float, float]]:
+    def _extract_coordinates(self) -> dict[int, tuple[int, int]]:
         result = {}
         for i in self.problem.get_nodes():
             result[i] = self.problem.node_coords[i]
