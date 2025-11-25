@@ -169,7 +169,7 @@ def run_genetic_algorithm(
 
         # Krzyżowanie
         offspring = []
-        for i in range(0, len(parents) - 1, 2):
+        for i in range(0, len(parents), 2):
             if random.random() < crossover_prob:
                 child1, child2 = crossover_func(parents[i % len(parents)], parents[(i + 1) % len(parents)])
                 offspring.extend([child1, child2])
