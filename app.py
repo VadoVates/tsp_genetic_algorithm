@@ -158,17 +158,23 @@ def run_genetic_algorithm(
         selected_population = [tour for tour, _ in population_with_fitness]
         
         if selection_method == "Rank Selection":
-            selected = rank_select(selected_population, rank_size, tsp)
+            base = rank_select(selected_population, rank_size, tsp)
         elif selection_method == "Tournament Selection":
-            selected = tournament_select(
+            base = tournament_select(
                 selected_population,
                 tsp,
                 tournament_size,
                 len(selected_population)  # albo np. population_size - elitism_count
             )
         else:  # Roulette
-            selected = roulette_select(selected_population, tsp, roulette_size)
+            base = roulette_select(selected_population, tsp, roulette_size)
         
+        needed = population_size - elitism_count
+        if needed <= 0:
+            selected = base[:]
+        else:
+            selected = [random.choice(base) for _ in range(needed)]
+
         # Krzyżowanie
         offspring = []
         for i in range(0, len(selected) - 1, 2):
@@ -177,6 +183,8 @@ def run_genetic_algorithm(
                 offspring.extend([child1, child2])
             else:
                 offspring.extend([selected[i], selected[i + 1]])
+
+        population = elites + offspring[:needed]
         
         # Mutacja
         offspring = [mutation_func(tour, mutation_prob) for tour in offspring]
