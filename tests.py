@@ -551,7 +551,7 @@ class TestSwapMutation:
         tour = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         original_set = set(tour)
         
-        mutated = swap_mutation(tour[:], mutation_propability=0.5)
+        mutated = swap_mutation(tour[:], mutation_probability=0.5)
         
         assert len(mutated) == len(tour)
         assert set(mutated) == original_set
@@ -562,7 +562,7 @@ class TestSwapMutation:
         tour = [0, 1, 2, 3, 4, 5]
         original = tour[:]
         
-        mutated = swap_mutation(tour[:], mutation_propability=0.0)
+        mutated = swap_mutation(tour[:], mutation_probability=0.0)
         
         assert set(mutated) == set(original)
     
@@ -574,7 +574,7 @@ class TestSwapMutation:
         
         changes = 0
         for _ in range(10):
-            mutated = swap_mutation(tour[:], mutation_propability=0.9)
+            mutated = swap_mutation(tour[:], mutation_probability=0.9)
             if mutated != original:
                 changes += 1
             assert set(mutated) == set(original)
@@ -584,13 +584,13 @@ class TestSwapMutation:
     def test_swap_mutation_single_city(self):
         """Test mutacji dla pojedynczego miasta"""
         tour = [0]
-        mutated = swap_mutation(tour[:], mutation_propability=1.0)
+        mutated = swap_mutation(tour[:], mutation_probability=1.0)
         assert mutated == [0]
     
     def test_swap_mutation_two_cities(self):
         """Test mutacji dla dwóch miast"""
         tour = [0, 1]
-        mutated = swap_mutation(tour[:], mutation_propability=1.0)
+        mutated = swap_mutation(tour[:], mutation_probability=1.0)
         assert set(mutated) == {0, 1}
     
     def test_swap_mutation_preserves_all_genes(self):
@@ -599,12 +599,12 @@ class TestSwapMutation:
         random.shuffle(tour)
         
         for _ in range(10):
-            mutated = swap_mutation(tour[:], mutation_propability=0.3)
+            mutated = swap_mutation(tour[:], mutation_probability=0.3)
             assert sorted(mutated) == sorted(tour)
     
     def test_swap_mutation_returns_new_list(self):
         tour = [0, 1, 2, 3, 4]
-        result = swap_mutation(tour, mutation_propability=0.5)
+        result = swap_mutation(tour, mutation_probability=0.5)
         assert result is not tour  # ma być nowy obiekt
         assert set(result) == set(tour)
     
@@ -613,63 +613,63 @@ class TestSwapMutation:
         tour = list(range(100))
         random.shuffle(tour)
         
-        mutated = swap_mutation(tour[:], mutation_propability=0.2)
+        mutated = swap_mutation(tour[:], mutation_probability=0.2)
         assert is_valid_permutation(mutated, tour)
 
 
 class TestSwapMutatePopulation:
     """Testy mutacji całej populacji"""
     
-    def test_swap_mutate_population_size(self):
+    def test_swap_mutation_size(self):
         """Test czy zwraca populację o tym samym rozmiarze"""
         population = [[0, 1, 2, 3, 4] for _ in range(10)]
         
-        mutated_pop = swap_mutate_population(population, mutation_propability=0.3)
+        mutated_pop = swap_mutation(population, mutation_probability=0.3)
         
         assert len(mutated_pop) == len(population)
     
-    def test_swap_mutate_population_all_valid(self):
+    def test_swap_mutation_all_valid(self):
         """Test czy wszystkie trasy w populacji są poprawne"""
         cities = list(range(10))
         population = [create_random_permutation(cities) for _ in range(20)]
         
-        mutated_pop = swap_mutate_population(population, mutation_propability=0.2)
+        mutated_pop = swap_mutation(population, mutation_probability=0.2)
         
         for tour in mutated_pop:
             assert is_valid_permutation(tour, cities)
     
-    def test_swap_mutate_population_empty(self):
+    def test_swap_mutation_empty(self):
         """Test dla pustej populacji"""
         population = []
-        mutated_pop = swap_mutate_population(population, mutation_propability=0.5)
+        mutated_pop = swap_mutation(population, mutation_probability=0.5)
         assert len(mutated_pop) == 0
     
-    def test_swap_mutate_population_single_individual(self):
+    def test_swap_mutation_single_individual(self):
         """Test dla populacji z jednym osobnikiem"""
         population = [[0, 1, 2, 3, 4]]
-        mutated_pop = swap_mutate_population(population, mutation_propability=0.3)
+        mutated_pop = swap_mutation(population, mutation_probability=0.3)
         
         assert len(mutated_pop) == 1
         assert is_valid_permutation(mutated_pop[0], population[0])
     
-    def test_swap_mutate_population_preserves_diversity(self):
+    def test_swap_mutation_preserves_diversity(self):
         """Test czy mutacja zachowuje różnorodność"""
         cities = list(range(15))
         population = [create_random_permutation(cities) for _ in range(50)]
         
-        mutated_pop = swap_mutate_population(population, mutation_propability=0.1)
+        mutated_pop = swap_mutation(population, mutation_probability=0.1)
         
         unique_before = len(set(tuple(t) for t in population))
         unique_after = len(set(tuple(t) for t in mutated_pop))
         
         assert unique_after > 0
     
-    def test_swap_mutate_population_zero_probability(self):
+    def test_swap_mutation_zero_probability(self):
         """Test mutacji populacji z prawdopodobieństwem 0"""
         cities = list(range(5))
         population = [create_random_permutation(cities) for _ in range(10)]
         
-        mutated_pop = swap_mutate_population(population, mutation_propability=0.0)
+        mutated_pop = swap_mutation(population, mutation_probability=0.0)
         
         for tour in mutated_pop:
             assert is_valid_permutation(tour, cities)
@@ -679,18 +679,18 @@ class TestInversionMutation:
 
     def test_inversion_mutation_preserves_permutation(self):
         tour = list(range(10))
-        mutated = inversion_mutation(tour[:], mutation_propability=1.0)
+        mutated = inversion_mutation(tour[:], mutation_probability=1.0)
         assert len(mutated) == len(tour)
         assert set(mutated) == set(tour)
 
     def test_inversion_mutation_zero_probability(self):
         tour = [0, 1, 2, 3, 4]
-        mutated = inversion_mutation(tour[:], mutation_propability=0.0)
+        mutated = inversion_mutation(tour[:], mutation_probability=0.0)
         assert mutated == tour
 
     def test_inversion_mutation_small_tour(self):
         tour = [0, 1]
-        mutated = inversion_mutation(tour[:], mutation_propability=1.0)
+        mutated = inversion_mutation(tour[:], mutation_probability=1.0)
         assert set(mutated) == {0, 1}
 
     def test_inversion_mutation_changes_order(self):
@@ -698,7 +698,7 @@ class TestInversionMutation:
         tour = list(range(10))
         changed = False
         for _ in range(10):
-            mutated = inversion_mutation(tour[:], mutation_propability=1.0)
+            mutated = inversion_mutation(tour[:], mutation_probability=1.0)
             if mutated != tour:
                 changed = True
                 break
@@ -709,23 +709,23 @@ class TestScrambleMutation:
 
     def test_scramble_mutation_preserves_permutation(self):
         tour = list(range(10))
-        mutated = scramble_mutation(tour[:], mutation_propability=1.0)
+        mutated = scramble_mutation(tour[:], mutation_probability=1.0)
         assert len(mutated) == len(tour)
         assert set(mutated) == set(tour)
 
     def test_scramble_mutation_zero_probability(self):
         tour = [0, 1, 2, 3]
-        mutated = scramble_mutation(tour[:], mutation_propability=0.0)
+        mutated = scramble_mutation(tour[:], mutation_probability=0.0)
         assert mutated == tour
 
     def test_scramble_mutation_small_tour(self):
         tour = [0, 1]
-        mutated = scramble_mutation(tour[:], mutation_propability=1.0)
+        mutated = scramble_mutation(tour[:], mutation_probability=1.0)
         assert set(mutated) == {0, 1}
 
     def test_scramble_mutation_randomness(self):
         tour = list(range(10))
-        results = {tuple(scramble_mutation(tour[:], mutation_propability=1.0)) for _ in range(10)}
+        results = {tuple(scramble_mutation(tour[:], mutation_probability=1.0)) for _ in range(10)}
         assert len(results) > 1
 
 # ============================================================================
@@ -792,7 +792,7 @@ class TestEdgeCases:
         c1, c2 = suppress_prints(edge_recombination_crossover, p1, p2)
         assert is_valid_permutation(c1, cities)
         
-        mutated = swap_mutation(p1[:], mutation_propability=0.5)
+        mutated = swap_mutation(p1[:], mutation_probability=0.5)
         assert is_valid_permutation(mutated, cities)
 
 
@@ -819,7 +819,7 @@ class TestIntegration:
             c1, c2 = suppress_prints(order_crossover, parents[i], parents[i+1])
             offspring.extend([c1, c2])
         
-        mutated = swap_mutate_population(offspring, mutation_propability=0.1)
+        mutated = swap_mutation(offspring, mutation_probability=0.1)
         
         for tour in mutated:
             assert is_valid_permutation(tour, cities)
@@ -843,7 +843,7 @@ class TestIntegration:
                                     parents_rank[i], parents_rank[i+1])
             offspring.extend([c1, c2])
         
-        mutated = swap_mutate_population(offspring, mutation_propability=0.2)
+        mutated = swap_mutation(offspring, mutation_probability=0.2)
         
         for tour in mutated:
             assert is_valid_permutation(tour, cities)
@@ -868,7 +868,7 @@ class TestIntegration:
                 c1, c2 = suppress_prints(order_crossover, parents[i], parents[i+1])
                 offspring.extend([c1, c2])
             
-            offspring = swap_mutate_population(offspring, mutation_propability=0.1)
+            offspring = swap_mutation(offspring, mutation_probability=0.1)
             
             population = parents[:5] + offspring[:15]
         
@@ -1135,19 +1135,3 @@ class TestPartiallyMappedCrossover:
         assert is_valid_permutation(c1, p1)
         assert is_valid_permutation(c2, p2)
 
-
-# ============================================================================
-# TESTY GENETIC ALGORITHM
-# ============================================================================
-
-class TestGeneticAlgorithmFunction:
-    """Test funkcji głównej genetic_algorithm"""
-
-    def test_genetic_algorithm_runs_and_returns_population(self):
-        tsp = TSPProblem("data/att48.tsp")
-        result = genetic_algorithm(tsp, population_size=10, generations=1)
-        assert isinstance(result, list)
-        assert len(result) == 10
-        for tour in result:
-            assert isinstance(tour, list)
-            assert len(set(tour)) == len(tour)

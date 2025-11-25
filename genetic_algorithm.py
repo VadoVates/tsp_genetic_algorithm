@@ -37,7 +37,7 @@ def rank_select (population_in: list[list[int]], rank_size: int,
             [:rank_size])
 
 def tournament_select (population: list[list[int]], tsp: TSPProblem,
-                       tournament_size: int = 3, selection_count: int = 10) -> list[list[int]]:
+                       tournament_size: int = 3, selection_count: int = None) -> list[list[int]]:
     if not population:
         raise ValueError ("population is empty")
     if not (1 <= tournament_size <= len(population)):
@@ -56,6 +56,9 @@ def tournament_select (population: list[list[int]], tsp: TSPProblem,
 
 def roulette_select (population: list[list[int]], tsp: TSPProblem,
                      roulette_selection_size: int) -> list[list[int]]:
+    if roulette_selection_size < 1 or roulette_selection_size > len(population):
+        roulette_selection_size = len(population)
+
     contenders = random.sample(population, roulette_selection_size)
     worst_score = max(fitness(tour, tsp) for tour in contenders)
     fitness_list = [fitness_normalized(tour, tsp, worst_score) for tour in contenders]
@@ -87,8 +90,8 @@ def order_crossover (parent1: list[int], parent2: list[int]) -> tuple[list[int],
     end: 10
     Rodzic 1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     Rodzic 2: [3, 7, 5, 1, 9, 0, 2, 8, 6, 4]
-    child: [None, None, None, None, None, None, None, None, 8, 9]
-    child: [None, None, None, None, None, None, None, None, 6, 4]
+    child: [-1, -1, -1, -1, -1, -1, -1, -1, 8, 9]
+    child: [-1, -1, -1, -1, -1, -1, -1, -1, 6, 4]
     Dziecko 1: [3, 7, 5, 1, 0, 2, 6, 4, 8, 9]
     Dziecko 2: [0, 1, 2, 3, 5, 7, 8, 9, 6, 4]
     """
@@ -127,8 +130,8 @@ def partially_mapped_crossover(parent1: list[int], parent2: list[int]) -> tuple[
     end: 10
     Rodzic 1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     Rodzic 2: [3, 7, 5, 1, 9, 0, 2, 8, 6, 4]
-    child: [None, None, None, None, None, None, None, None, 8, 9]
-    child: [None, None, None, None, None, None, None, None, 6, 4]
+    child: [-1, -1, -1, -1, -1, -1, -1, -1, 8, 9]
+    child: [-1, -1, -1, -1, -1, -1, -1, -1, 6, 4]
     Dziecko 1: [3, 7, 5, 1, 4, 0, 2, 6, 8, 9]
     Dziecko 2: [0, 1, 2, 3, 9, 5, 8, 7, 6, 4]
     """
@@ -217,17 +220,17 @@ def edge_recombination_crossover(parent1: list[int], parent2: list[int]) -> tupl
 
 """ MUTATION """
 
-def swap_mutation (tour_in: list[int], mutation_propability: float = 0.1) -> list[int]:
+def swap_mutation (tour_in: list[int], mutation_probability: float = 0.1) -> list[int]:
     tour = tour_in[:]
-    if random.random() < mutation_propability:
+    if random.random() < mutation_probability:
         pick1 = random.randint(0, len(tour)-1)
         pick2 = random.randint(0, len(tour)-1)
         tour [pick1], tour[pick2] = tour[pick2], tour[pick1]
     return tour
 
-def inversion_mutation (tour_in: list[int], mutation_propability: float = 0.1) -> list[int]:
+def inversion_mutation (tour_in: list[int], mutation_probability: float = 0.1) -> list[int]:
     tour = tour_in[:]
-    if random.random() < mutation_propability:
+    if random.random() < mutation_probability:
         tour_size = len(tour)
         if tour_size < 2:
             return tour
@@ -239,9 +242,9 @@ def inversion_mutation (tour_in: list[int], mutation_propability: float = 0.1) -
 
     return tour
 
-def scramble_mutation (tour_in: list[int], mutation_propability: float = 0.1) -> list[int]:
+def scramble_mutation (tour_in: list[int], mutation_probability: float = 0.1) -> list[int]:
     tour = tour_in[:]
-    if random.random() < mutation_propability:
+    if random.random() < mutation_probability:
         tour_size = len(tour)
         if tour_size < 2:
             return tour

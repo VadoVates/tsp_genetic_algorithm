@@ -80,7 +80,7 @@ def crossover_pair (a: int, b: int, cut: int) -> tuple [int, int]:
     c2 = c2 & 0b11_1111_1111 # dla pewności że wynik ma 10 bitów
     return c1, c2
 
-def one_point_crossover (population: list[int], cross_propability: float = 0.5
+def one_point_crossover (population: list[int], cross_probability: float = 0.5
                          ) -> list[int]:
     sh = population[:] # klonowanie
     random.shuffle(sh)
@@ -89,7 +89,7 @@ def one_point_crossover (population: list[int], cross_propability: float = 0.5
         a = sh[i]
         # w razie przekręcenia licznika, modulo sparuje ostatni z pierwszym
         b = sh[(i+1) % len(sh)]
-        if random.random() < cross_propability:
+        if random.random() < cross_probability:
             cut = random.randint(1,9)
             c1, c2 = crossover_pair (a, b, cut)
             offspring += [c1, c2]
@@ -99,20 +99,20 @@ def one_point_crossover (population: list[int], cross_propability: float = 0.5
 
 """ MUTATION """
 
-def mutate (chromosome: int, mutation_propability: float = 0.02) -> int:
+def mutate (chromosome: int, mutation_probability: float = 0.02) -> int:
     c = chromosome
     for i in range(10):
-        if random.random() < mutation_propability:
+        if random.random() < mutation_probability:
             # podmiana 1 bitu przez XOR
             c = c ^ (1 << i)
 
     return c
 
-def mutate_population (population: list[int], mutation_propability: float = 0.02
+def mutate_population (population: list[int], mutation_probability: float = 0.02
                        ) -> list[int]:
     out = []
     for chromosome in population:
-        out.append(mutate (chromosome, mutation_propability))
+        out.append(mutate (chromosome, mutation_probability))
     return out
 
 """ DESCRIBE VALUES """
@@ -137,8 +137,8 @@ def describe_population (population: list[int]) -> str:
 def genetic_algorithm (
         population: list[int],
         generations: int = 100,
-        cross_propability: float = 0.5,
-        mutation_propability: float = 0.02
+        cross_probability: float = 0.5,
+        mutation_probability: float = 0.02
     ):
     best_overall = max (population, key=g)
     
@@ -146,9 +146,9 @@ def genetic_algorithm (
         # 1. Reprodukcja ruletką:
         selected = roulette_select (population)
         # 2. Krzyżowanie:
-        crossed = one_point_crossover (selected, cross_propability = cross_propability)
+        crossed = one_point_crossover (selected, cross_probability = cross_probability)
         # 3. Mutacja:
-        mutated = mutate_population (crossed, mutation_propability=mutation_propability)
+        mutated = mutate_population (crossed, mutation_probability=mutation_probability)
         # 4. Rank crossover:
         population = rank_select(mutated, len(population))
 
@@ -166,4 +166,4 @@ if __name__ == "__main__":
         0b0001100011,
         0b0000011111
     ]
-    genetic_algorithm(population, generations = 100, cross_propability = 0.75, mutation_propability = 0.02)
+    genetic_algorithm(population, generations = 100, cross_probability = 0.75, mutation_probability = 0.02)
