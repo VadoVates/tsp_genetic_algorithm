@@ -184,13 +184,12 @@ def run_genetic_algorithm(
             else:
                 offspring.extend([selected[i], selected[i + 1]])
 
-        population = elites + offspring[:needed]
-        
         # Mutacja
         offspring = [mutation_func(tour, mutation_prob) for tour in offspring]
-        
+
         # Nowa populacja
-        population = elites + offspring[:population_size - elitism_count]
+        needed = population_size - elitism_count
+        population = elites + offspring[:needed]
     
     total_time = time.time() - start_time
     
