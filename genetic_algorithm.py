@@ -43,18 +43,15 @@ def tournament_select (population: list[list[int]], tsp: TSPProblem,
     if not (1 <= tournament_size <= len(population)):
         tournament_size = len(population)
 
-    selected = []
-    for _ in range(len(population)):
-        contenders = random.sample(population, tournament_size)
-        shortest_tour = min (contenders, key=lambda tour: fitness(tour, tsp))
-        selected.append(shortest_tour)
+    contenders = random.sample(population, tournament_size)
+    winner = min (contenders, key=lambda tour: fitness(tour, tsp))
 
-    return selected
+    return [winner]
 
 def roulette_select (population: list[list[int]], tsp: TSPProblem,
                      roulette_selection_size: int) -> list[list[int]]:
     if roulette_selection_size < 1 or roulette_selection_size > len(population):
-        roulette_selection_size = len(population)
+        raise ValueError ("roulette_selection_size out of range")
 
     contenders = random.sample(population, roulette_selection_size)
     worst_score = max(fitness(tour, tsp) for tour in contenders)

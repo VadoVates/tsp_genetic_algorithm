@@ -67,6 +67,7 @@ def run_genetic_algorithm(
     progress_bar,
     status_text
 ):
+    random.seed()
     """Główna pętla algorytmu genetycznego z wizualizacją na żywo"""
     
     cities = list(tsp.coordinates.keys())
