@@ -20,34 +20,31 @@ def initialize_population (cities: list[int], population_size: int) -> list[list
 
 """ FITNESS / FUNKCJA CELU """
 
-# im mniej tym lepiej
+# zwraca długość trasy (im krótsza, tym lepsza)
 def fitness (tour: list[int], tsp: TSPProblem) -> int:
     return tsp.tour_length(tour)
 
-# odwrócenie logiki -> im mniej kilometrów, tym wyższy wynik
+# odwrócenie logiki -> dużo kilometrów = zły wynik, ale pierwszy na liście
 def fitness_normalized (tour: list[int], tsp: TSPProblem, worst_score: int):
     return (worst_score - fitness(tour, tsp) + 1)
 
 """ SELECTION """
 
-def rank_select (population_in: list[list[int]], rank_size: int,
-                 tsp: TSPProblem) -> list[list[int]]:
+def rank_select (population_in: list[list[int]], tsp: TSPProblem, rank_size: int
+                 ) -> list[list[int]]:
     population = population_in[:]
     return (sorted(population, key=lambda tour: fitness(tour, tsp))
             [:rank_size])
 
 def tournament_select (population: list[list[int]], tsp: TSPProblem,
-                       tournament_size: int = 3, selection_count: int = None) -> list[list[int]]:
+                       tournament_size: int = 3) -> list[list[int]]:
     if not population:
         raise ValueError ("population is empty")
     if not (1 <= tournament_size <= len(population)):
-        raise ValueError("Invalid tournament size")
-    
-    if selection_count is None:
-        selection_count = len(population)
+        tournament_size = len(population)
 
     selected = []
-    for _ in range(selection_count):
+    for _ in range(len(population)):
         contenders = random.sample(population, tournament_size)
         shortest_tour = min (contenders, key=lambda tour: fitness(tour, tsp))
         selected.append(shortest_tour)

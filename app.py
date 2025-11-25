@@ -97,11 +97,11 @@ def run_genetic_algorithm(
     
     for generation in range(generations):
         # Ocena fitness
-        population_with_fitness = [(tour, fitness(tour, tsp)) for tour in population]
-        population_with_fitness.sort(key=lambda x: x[1])
-        
-        current_best_tour, current_best_distance = population_with_fitness[0]
-        
+        population_sorted = rank_select(population, tsp, population_size)
+
+        current_best_tour = population_sorted[0]
+        current_best_distance = fitness(current_best_tour, tsp)
+
         if generation == 0:
             initial_distance = current_best_distance
         
@@ -151,46 +151,36 @@ def run_genetic_algorithm(
             progress_bar.progress(progress)
             status_text.text(f"Generacja {generation + 1}/{generations} - Dystans: {best_distance:.2f}")
         
-        # Elityzm
-        elites = [tour for tour, _ in population_with_fitness[:elitism_count]]
-        
-        # Selekcja
-        selected_population = [tour for tour, _ in population_with_fitness]
-        
-        if selection_method == "Rank Selection":
-            base = rank_select(selected_population, rank_size, tsp)
-        elif selection_method == "Tournament Selection":
-            base = tournament_select(
-                selected_population,
-                tsp,
-                tournament_size,
-                len(selected_population)  # albo np. population_size - elitism_count
-            )
-        else:  # Roulette
-            base = roulette_select(selected_population, tsp, roulette_size)
-        
-        needed = population_size - elitism_count
-        if needed <= 0:
-            selected = base[:]
-        else:
-            selected = [random.choice(base) for _ in range(needed)]
+        # Elityzm -> ci mają gwarantowane przejście do następnej generacji
+        elites = population_sorted[:elitism_count]
+        remaining_count = population_size - elitism_count
+
+        parents = []
+
+        while len(parents) < remaining_count:
+            # Selekcja
+            if selection_method == "Rank Selection":
+                parents.extend(rank_select(population, tsp, rank_size))
+            elif selection_method == "Tournament Selection":
+                parents.extend(tournament_select(population, tsp, tournament_size))
+            else:  # Roulette
+                parents.extend(roulette_select(population, tsp, roulette_size))
 
         # Krzyżowanie
         offspring = []
-        for i in range(0, len(selected) - 1, 2):
+        for i in range(0, len(parents) - 1, 2):
             if random.random() < crossover_prob:
-                child1, child2 = crossover_func(selected[i], selected[i + 1])
+                child1, child2 = crossover_func(parents[i % len(parents)], parents[(i + 1) % len(parents)])
                 offspring.extend([child1, child2])
             else:
-                offspring.extend([selected[i], selected[i + 1]])
+                offspring.extend([parents[i % len(parents)], parents[(i + 1) % len(parents)]])
 
         # Mutacja
-        offspring = [mutation_func(tour, mutation_prob) for tour in offspring]
+        mutated = [mutation_func(tour, mutation_prob) for tour in offspring]
 
         # Nowa populacja
-        needed = population_size - elitism_count
-        population = elites + offspring[:needed]
-    
+        population = elites + rank_select(mutated, tsp, remaining_count)
+
     total_time = time.time() - start_time
     
     return best_tour, best_distance, history, total_time
@@ -244,9 +234,18 @@ st.sidebar.markdown("---")
 
 # Parametry dodatkowe dla metod selekcji
 st.sidebar.subheader("Parametry selekcji")
-rank_size = st.sidebar.slider("Rank size", 10, population_size, min(30, population_size), 5)
-roulette_size = st.sidebar.slider("Roulette size", 10, population_size, min(80, population_size), 5)
-tournament_size = st.sidebar.slider("Tournament size", 2, 10, 3, 1)
+if selection_method == "Rank Selection":
+    rank_size = st.sidebar.slider("Rank size", 10, population_size, min(30, population_size), 5)
+    roulette_size = 0
+    tournament_size = 0
+elif selection_method == "Tournament Selection":
+    tournament_size = st.sidebar.slider("Tournament size", 2, 10, 3, 1)
+    rank_size = 0
+    roulette_size = 0
+else:  # Roulette Selection
+    roulette_size = st.sidebar.slider("Roulette size", 10, population_size, min(80, population_size), 5)
+    rank_size = 0
+    tournament_size = 0
 
 st.sidebar.markdown("---")
 
