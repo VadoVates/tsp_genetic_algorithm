@@ -37,7 +37,7 @@ def rank_select (population_in: list[list[int]], rank_size: int,
             [:rank_size])
 
 def tournament_select (population: list[list[int]], tsp: TSPProblem,
-                       tournament_size: int = 3, selection_count: int = None) -> list[list[int]]:
+                       tournament_size: int = 3, selection_count: int = 10) -> list[list[int]]:
     if not population:
         raise ValueError ("population is empty")
     if not (1 <= tournament_size <= len(population)):
@@ -106,7 +106,7 @@ def order_crossover (parent1: list[int], parent2: list[int]) -> tuple[list[int],
             gene = pB[(end + i) % parent_size]
             if gene in taken:
                 continue
-            while child[index] is not None:
+            while child[index] != -1:
                 index = (index + 1) % parent_size
             child[index] = gene
             index = (index + 1) % parent_size
@@ -147,14 +147,14 @@ def partially_mapped_crossover(parent1: list[int], parent2: list[int]) -> tuple[
                 continue
             
             position = i
-            while child[position] is not None:
+            while child[position] != -1:
                 value_in_child = child[position]
                 position = pB.index(value_in_child)
 
             child[position] = gene_from_pB
 
         for i in range (parent_size):
-            if child[i] is None:
+            if child[i] == -1:
                 child[i] = pB[i]
 
         return child

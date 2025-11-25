@@ -59,5 +59,8 @@ class TSPProblem:
         """
         for u, v in zip (tour, tour[1:]):
             total += self.distance(u, v)
-        
+            
+        if len(tour) > 1:
+            total += self.distance(tour[-1], tour[0])
+
         return total
