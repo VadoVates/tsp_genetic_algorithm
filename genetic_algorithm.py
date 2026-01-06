@@ -1,253 +1,211 @@
-"""
-genetic_algorithm.py – pętla GA: inicjalizacja populacji,
-selekcja, krzyżowanie, mutacja, elityzm,
-ocena fitness (używa tsp_problem.tour_length).
-Zwraca najlepszą trasę i historię postępu.
-"""
-
 import random
-from tsp_problem import TSPProblem
+import time
+import streamlit as st
+import matplotlib.pyplot as plt
+from visualization import plot_tour, plot_convergence
+from operators import (
+    initialize_population, fitness, rank_select, tournament_select,
+    roulette_select, order_crossover, partially_mapped_crossover,
+    edge_recombination_crossover, swap_mutation, inversion_mutation,
+    scramble_mutation
+)
+import pandas as pd
+from pathlib import Path
+import tsp_problem
 
-""" INICJALIZACJA POPULACJI """
+RESULTS_FILE = Path("results/experiments.csv")
 
-def create_random_permutation (cities: list[int]) -> list[int]:
-    tour = cities[:] #kopia
-    random.shuffle(tour)
-    return tour
+SOLUTION_PATHS = {
+    "ATT48": "data/att48.opt.tour",
+    "Berlin52": "data/berlin52.opt.tour"
+}
 
-def initialize_population (cities: list[int], population_size: int) -> list[list[int]]:
-    return [create_random_permutation(cities) for _ in range (population_size)]
+OPTIMAL_SOLUTIONS = {
+    "ATT48": tsp_problem.optimal_tour(SOLUTION_PATHS["ATT48"]),
+    "Berlin52": tsp_problem.optimal_tour(SOLUTION_PATHS["Berlin52"])
+}
 
-""" FITNESS / FUNKCJA CELU """
+def save_experiment (dataset: str, best_distance: float, total_time: float, generations: int,
+                     population_size: int, mutation_prob: float, crossover_prob: float,
+                     elitism_percent: float, selection_method: str, crossover_method: str,
+                     mutation_method: str, initial_distance: float, history: list[float], optimal_distance: int):
 
-# zwraca długość trasy (im krótsza, tym lepsza)
-def fitness (tour: list[int], tsp: TSPProblem) -> int:
-    return tsp.tour_length(tour)
+    RESULTS_FILE.parent.mkdir(exist_ok=True, parents=True)
 
-# odwrócenie logiki -> dużo kilometrów = zły wynik, ale pierwszy na liście
-def fitness_normalized (tour: list[int], tsp: TSPProblem, worst_score: int):
-    return (worst_score - fitness(tour, tsp) + 1)
+    improvement = (initial_distance - best_distance) / initial_distance * 100 if initial_distance is not None else 0
 
-""" SELECTION """
+    row = {
+        "timestamp": time.time(),
+        "dataset": dataset,
+        "best_distance": best_distance,
+        "optimal_distance": optimal_distance,
+        "gap_percent": (best_distance - optimal_distance) / optimal_distance * 100 if optimal_distance is not None else None,
+        "improvement_percent": improvement,
+        "total_time_s": total_time,
+        "generations": generations,
+        "population_size": population_size,
+        "mutation_prob": mutation_prob,
+        "crossover_prob": crossover_prob,
+        "elitism_percent": elitism_percent,
+        "selection_method": selection_method,
+        "mutation_method": mutation_method,
+        "crossover_method": crossover_method,
+        "initial_distance": initial_distance,
+        "convergence_gen": next ((i for i, d in enumerate(history) if d == best_distance), len(history))
+    }
 
-def rank_select (population_in: list[list[int]], tsp: TSPProblem, rank_size: int
-                 ) -> list[list[int]]:
-    population = population_in[:]
-    return (sorted(population, key=lambda tour: fitness(tour, tsp))
-            [:rank_size])
+    df_new = pd.DataFrame([row])
 
-def tournament_select (population: list[list[int]], tsp: TSPProblem,
-                       tournament_size: int = 3) -> list[list[int]]:
-    if not population:
-        raise ValueError ("population is empty")
-    if not (1 <= tournament_size <= len(population)):
-        tournament_size = len(population)
+    if RESULTS_FILE.exists():
+        df_new.to_csv(RESULTS_FILE, mode='a', index=False, header=False)
+    else:
+        df_new.to_csv(RESULTS_FILE, mode='w', index=False, header=True)
 
-    contenders = random.sample(population, tournament_size)
-    winner = min (contenders, key=lambda tour: fitness(tour, tsp))
+################################################################################
 
-    return [winner]
+def run_genetic_algorithm(
+        tsp: tsp_problem.TSPProblem,
+        population_size: int,
+        generations: int,
+        mutation_prob: float,
+        crossover_prob: float,
+        elitism_count: int,
+        selection_method: str,
+        crossover_method: str,
+        mutation_method: str,
+        rank_size: int,
+        roulette_size: int,
+        tournament_size: int,
+        map_placeholder,
+        chart_placeholder,
+        metrics_placeholder,
+        progress_bar,
+        status_text,
+        elitism_percent: float,
+        optimal_distance: int
+):
 
-def roulette_select (population: list[list[int]], tsp: TSPProblem,
-                     roulette_selection_size: int) -> list[list[int]]:
-    if roulette_selection_size < 1 or roulette_selection_size > len(population):
-        raise ValueError ("roulette_selection_size out of range")
+    random.seed()
+    """Główna pętla algorytmu genetycznego z wizualizacją na żywo"""
 
-    contenders = random.sample(population, roulette_selection_size)
-    worst_score = max(fitness(tour, tsp) for tour in contenders)
-    fitness_list = [fitness_normalized(tour, tsp, worst_score) for tour in contenders]
+    cities = list(tsp.coordinates.keys())
+    population = initialize_population(cities, population_size)
 
-    fitness_accumulated = []
-    total = 0
-    for fit in fitness_list:
-        total+=fit
-        fitness_accumulated.append(total)
+    history = []
+    best_tour = None
+    best_distance = float('inf')
+    start_time = time.time()
+    initial_distance = None
 
-    selected = []
-    for _ in range (len(contenders)):
-        r = random.randint (1, total)
-        for i, accumulation in enumerate (fitness_accumulated):
-            if r <= accumulation:
-                selected.append(contenders[i])
-                break
+    # Metody krzyżowania
+    crossover_methods = {
+        "Order Crossover (OX)": order_crossover,
+        "Partially Mapped Crossover (PMX)": partially_mapped_crossover,
+        "Edge Recombination (ERX)": edge_recombination_crossover
+    }
 
-    return selected
+    # Metody mutacji
+    mutation_methods = {
+        "Swap Mutation": swap_mutation,
+        "Inversion Mutation": inversion_mutation,
+        "Scramble Mutation": scramble_mutation
+    }
 
-""" CROSSOVER SECTION """
+    crossover_func = crossover_methods[crossover_method]
+    mutation_func = mutation_methods[mutation_method]
 
-def order_crossover (parent1: list[int], parent2: list[int]) -> tuple[list[int], list[int]]:
-    parent_size = len(parent1)
-    assert len(parent2) == parent_size and len(set(parent1)) == parent_size and len(set(parent2)) == parent_size
-    """
-    PRZYKŁADOWE DZIAŁANIE:
-    start: 8
-    end: 10
-    Rodzic 1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    Rodzic 2: [3, 7, 5, 1, 9, 0, 2, 8, 6, 4]
-    child: [-1, -1, -1, -1, -1, -1, -1, -1, 8, 9]
-    child: [-1, -1, -1, -1, -1, -1, -1, -1, 6, 4]
-    Dziecko 1: [3, 7, 5, 1, 0, 2, 6, 4, 8, 9]
-    Dziecko 2: [0, 1, 2, 3, 5, 7, 8, 9, 6, 4]
-    """
-    start = random.randint(0,parent_size-1)
-    end = random.randint(start+1,parent_size)
+    for generation in range(generations):
+        # Ocena fitness
+        population_sorted = sorted(population, key=lambda distance: fitness(distance, tsp))
+        # rank_select(population, tsp, population_size))
 
-    def make_a_child_ox(pA: list[int], pB:list[int]) -> list[int]:
-        child = [-1] * parent_size
-        child[start:end] = pA[start:end]
-        taken = set(child[start:end])
+        current_best_tour = population_sorted[0]
+        current_best_distance = fitness(current_best_tour, tsp)
 
-        # modulo "przewija" indeksy od początku listy
-        index = end % parent_size
-        for i in range (parent_size):
-            gene = pB[(end + i) % parent_size]
-            if gene in taken:
-                continue
-            while child[index] != -1:
-                index = (index + 1) % parent_size
-            child[index] = gene
-            index = (index + 1) % parent_size
-        return child
-    
-    child1 = make_a_child_ox(parent1, parent2)
-    child2 = make_a_child_ox(parent2, parent1)
+        if generation == 0:
+            initial_distance = current_best_distance
 
-    return child1, child2
+        if current_best_distance < best_distance:
+            best_distance = current_best_distance
+            best_tour = current_best_tour[:]
 
-def partially_mapped_crossover(parent1: list[int], parent2: list[int]) -> tuple[list[int], list[int]]:
-    parent_size = len(parent1)
-    assert len(parent2) == parent_size and len(set(parent1)) == parent_size and len(set(parent2)) == parent_size
+        history.append(best_distance)
 
-    """
-    PRZYKŁADOWE DZIAŁANIE:
-    start: 8
-    end: 10
-    Rodzic 1: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    Rodzic 2: [3, 7, 5, 1, 9, 0, 2, 8, 6, 4]
-    child: [-1, -1, -1, -1, -1, -1, -1, -1, 8, 9]
-    child: [-1, -1, -1, -1, -1, -1, -1, -1, 6, 4]
-    Dziecko 1: [3, 7, 5, 1, 4, 0, 2, 6, 8, 9]
-    Dziecko 2: [0, 1, 2, 3, 9, 5, 8, 7, 6, 4]
-    """
+        # Aktualizacja wizualizacji co 10 generacji lub na końcu
+        if generation % 10 == 0 or generation == generations - 1:
+            assert best_tour is not None
+            # Mapa trasy
+            with map_placeholder.container():
+                fig_map = plot_tour(tsp, best_tour, f"Najlepsza trasa (Gen {generation + 1})")
+                st.pyplot(fig_map)
+                plt.close(fig_map)
 
-    start = random.randint(0,parent_size-1)
-    end = random.randint(start+1,parent_size)
+            # Wykres zbieżności
+            with chart_placeholder.container():
+                fig_chart = plot_convergence(history, "Zbieżność algorytmu")
+                st.pyplot(fig_chart)
+                plt.close(fig_chart)
 
-    def lets_make_a_baby_pmx(pA: list[int], pB:list[int]) -> list[int]:
-        child = [-1] * parent_size
-        child[start:end] = pA[start:end]
+            # Metryki
+            elapsed_time = time.time() - start_time
+            improvement = ((initial_distance - best_distance) / initial_distance * 100) if initial_distance else 0
+            diff_from_optimal = best_distance - optimal_distance if optimal_distance else None
 
-        for i in range (start, end):
-            gene_from_pB = pB[i]
+            with metrics_placeholder.container():
+                column1, column2, column3 = st.columns(3)
+                with column1:
+                    st.metric("Najlepsza odległość", f"{best_distance:.2f}")
+                    st.metric("Generacja", f"{generation + 1}/{generations}")
+                with column2:
+                    if optimal_distance and diff_from_optimal is not None:
+                        st.metric("Różnica od optimum", f"{diff_from_optimal:.2f}",
+                                  delta=f"{(diff_from_optimal / optimal_distance * 100):.2f}%", delta_color="inverse")
+                    st.metric("Czas wykonania", f"{elapsed_time:.2f}s")
+                with column3:
+                    st.metric("Poprawa", f"{improvement:.2f}%", delta=f"{improvement:.1f}%")
+                    if optimal_distance:
+                        st.metric("Optimum", f"{optimal_distance}")
 
-            if gene_from_pB in child[start:end]:
-                continue
-            
-            position = i
-            while child[position] != -1:
-                value_in_child = child[position]
-                position = pB.index(value_in_child)
+            # Progress bar
+            progress = (generation + 1) / generations
+            progress_bar.progress(progress)
+            status_text.text(f"Generacja {generation + 1}/{generations} - Dystans: {best_distance:.2f}")
 
-            child[position] = gene_from_pB
+        # Elityzm -> ci mają gwarantowane przejście do następnej generacji
+        elites: list[list[int]] = population_sorted[:elitism_count]
+        remaining_count = population_size - elitism_count
 
-        for i in range (parent_size):
-            if child[i] == -1:
-                child[i] = pB[i]
+        parents = []
 
-        return child
+        while len(parents) < remaining_count:
+            # Selekcja
+            if selection_method == "Rank Selection":
+                parents.extend(rank_select(population, tsp, rank_size))
+            elif selection_method == "Tournament Selection":
+                parents.extend(tournament_select(population, tsp, tournament_size))
+            else:  # Roulette
+                parents.extend(roulette_select(population, tsp, roulette_size))
 
-    child1 = lets_make_a_baby_pmx(parent1, parent2)
-    child2 = lets_make_a_baby_pmx(parent2, parent1)
-    return child1, child2
+        random.shuffle(parents)
+        # Krzyżowanie
+        offspring = []
+        for i in range(0, len(parents), 2):
+            if random.random() < crossover_prob:
+                child1, child2 = crossover_func(parents[i % len(parents)], parents[(i + 1) % len(parents)])
+                offspring.extend([child1, child2])
+            else:
+                offspring.extend([parents[i % len(parents)], parents[(i + 1) % len(parents)]])
 
-def edge_recombination_crossover(parent1: list[int], parent2: list[int]) -> tuple[list[int], list[int]]:
-    parent_size = len(parent1)
-    assert len(parent2) == parent_size and len(set(parent1)) == parent_size and len(set(parent2)) == parent_size
+        # Mutacja
+        mutated = [mutation_func(tour, mutation_prob) for tour in offspring]
 
-    def build_edge_table(pA: list[int], pB: list[int]) -> dict[int, set[int]]:
-        # utwórz pusty zbio©y z kluczem każdeho miasta
-        edge_table = {city: set() for city in pA}
+        # Nowa populacja
+        population = elites + rank_select(mutated, tsp, remaining_count)
 
-        def find_neighbours (parent):
-            for i in range(parent_size):
-                current = parent[i]
-                prev_city = parent[(i-1) % parent_size]
-                next_city = parent[(i+1) % parent_size]
-                edge_table[current].add(prev_city)
-                edge_table[current].add(next_city)
-        
-        find_neighbours(pA)
-        find_neighbours(pB)
+    total_time = time.time() - start_time
+    dataset = tsp.problem.edge_weight_type
+    save_experiment(dataset, best_distance, total_time, generations, population_size,
+                    mutation_prob, crossover_prob, elitism_percent, selection_method,
+                    crossover_method, mutation_method, initial_distance, history, optimal_distance)
 
-        return edge_table
-    
-    def give_me_a_child_erx(pA: list[int], pB: list[int]) -> list[int]:
-        edge_table = build_edge_table (pA, pB)
-        child: list[int] = []
-
-        # bieremy randomowe miasto z piyrszygo fatra/matuli
-        current = random.choice(pA)  
-        while len(child) < parent_size:
-            child.append(current)
-
-            # wyciepujemy `current` z wszystkich list sąsiedzkich
-            for city in edge_table:
-                edge_table[city].discard(current)
-
-            if not edge_table[current]:
-                remaining = [c for c in pA if c not in child]
-                if not remaining:
-                    break
-                current = random.choice (remaining)
-                continue
-            neighbours = edge_table[current]
-            min_edges = min(len(edge_table[n]) for n in neighbours)
-            candidates = [n for n in neighbours if len(edge_table[n]) == min_edges]
-
-            current = random.choice(candidates)
-        return child
-
-    child1 = give_me_a_child_erx(parent1, parent2)
-    child2 = give_me_a_child_erx(parent2, parent1)
-
-    return child1, child2
-
-""" MUTATION """
-
-def swap_mutation (tour_in: list[int], mutation_probability: float = 0.1) -> list[int]:
-    tour = tour_in[:]
-    if random.random() < mutation_probability:
-        pick1 = random.randint(0, len(tour)-1)
-        pick2 = random.randint(0, len(tour)-1)
-        tour [pick1], tour[pick2] = tour[pick2], tour[pick1]
-    return tour
-
-def inversion_mutation (tour_in: list[int], mutation_probability: float = 0.1) -> list[int]:
-    tour = tour_in[:]
-    if random.random() < mutation_probability:
-        tour_size = len(tour)
-        if tour_size < 2:
-            return tour
-        
-        start = random.randint(0,tour_size-1)
-        end = random.randint(start+1, tour_size)
-
-        tour[start:end] = reversed(tour[start:end])
-
-    return tour
-
-def scramble_mutation (tour_in: list[int], mutation_probability: float = 0.1) -> list[int]:
-    tour = tour_in[:]
-    if random.random() < mutation_probability:
-        tour_size = len(tour)
-        if tour_size < 2:
-            return tour
-        
-        start = random.randint(0,tour_size-1)
-        end = random.randint(start+1, tour_size)
-
-        segment = tour[start:end]
-        random.shuffle(segment)
-        tour[start:end] = segment
-
-    return tour
+    return best_tour, best_distance, history, total_time

@@ -1,5 +1,5 @@
 """
-Kompletny zestaw testów jednostkowych dla genetic_algorithm.py
+Kompletny zestaw testów jednostkowych dla operators.py
 Testy sprawdzają poprawność działania wszystkich funkcji oraz wykrywają edge case'y
 """
 
@@ -10,7 +10,7 @@ test.py - Testy jednostkowe i integracyjne dla algorytmu genetycznego TSP
 import pytest
 import random
 from tsp_problem import TSPProblem
-from genetic_algorithm import (
+from operators import (
     initialize_population, fitness, rank_select, 
     tournament_select, roulette_select,
     order_crossover, partially_mapped_crossover, edge_recombination_crossover,

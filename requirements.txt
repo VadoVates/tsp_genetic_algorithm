@@ -2,3 +2,4 @@ streamlit
 tsplib95
 pytest
 matplotlib
+pandas

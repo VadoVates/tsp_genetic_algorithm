@@ -1,19 +1,12 @@
 """
-app.py - Aplikacja Streamlit do wizualizacji algorytmu genetycznego dla TSP
+app.py – Aplikacja Streamlit do wizualizacji algorytmu genetycznego dla TSP
 """
-
+import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
-import time
-import random
 from tsp_problem import TSPProblem
-from genetic_algorithm import (
-    initialize_population, fitness, rank_select, tournament_select, 
-    roulette_select, order_crossover, partially_mapped_crossover,
-    edge_recombination_crossover, swap_mutation, inversion_mutation,
-    scramble_mutation
-)
-from visualization import plot_tour, plot_convergence, plot_comparison, plot_statistics
+from visualization import plot_statistics
+from genetic_algorithm import run_genetic_algorithm, RESULTS_FILE, OPTIMAL_SOLUTIONS
 
 # Konfiguracja strony
 st.set_page_config(
@@ -38,154 +31,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Optima dla datasetów
-OPTIMAL_SOLUTIONS = {
-    "ATT48": 10628,
-    "Berlin52": 7542
-}
-
 DATASETS = {
     "ATT48": "data/att48.tsp",
     "Berlin52": "data/berlin52.tsp"
 }
 
-def run_genetic_algorithm(
-    tsp: TSPProblem,
-    population_size: int,
-    generations: int,
-    mutation_prob: float,
-    crossover_prob: float,
-    elitism_count: int,
-    selection_method: str,
-    crossover_method: str,
-    mutation_method: str,
-    rank_size: int,
-    roulette_size: int,
-    tournament_size: int,
-    map_placeholder,
-    chart_placeholder,
-    metrics_placeholder,
-    progress_bar,
-    status_text
-):
-    random.seed()
-    """Główna pętla algorytmu genetycznego z wizualizacją na żywo"""
-    
-    cities = list(tsp.coordinates.keys())
-    population = initialize_population(cities, population_size)
-    
-    history = []
-    best_tour = None
-    best_distance = float('inf')
-    start_time = time.time()
-    initial_distance = None
-    
-    # Metody krzyżowania
-    crossover_methods = {
-        "Order Crossover (OX)": order_crossover,
-        "Partially Mapped Crossover (PMX)": partially_mapped_crossover,
-        "Edge Recombination (ERX)": edge_recombination_crossover
-    }
-    
-    # Metody mutacji
-    mutation_methods = {
-        "Swap Mutation": swap_mutation,
-        "Inversion Mutation": inversion_mutation,
-        "Scramble Mutation": scramble_mutation
-    }
-    
-    crossover_func = crossover_methods[crossover_method]
-    mutation_func = mutation_methods[mutation_method]
-    
-    for generation in range(generations):
-        # Ocena fitness
-        population_sorted = rank_select(population, tsp, population_size)
-
-        current_best_tour = population_sorted[0]
-        current_best_distance = fitness(current_best_tour, tsp)
-
-        if generation == 0:
-            initial_distance = current_best_distance
-        
-        if current_best_distance < best_distance:
-            best_distance = current_best_distance
-            best_tour = current_best_tour[:]
-        
-        history.append(best_distance)
-        
-        # Aktualizacja wizualizacji co 10 generacji lub na końcu
-        if generation % 10 == 0 or generation == generations - 1:
-            assert best_tour is not None
-            # Mapa trasy
-            with map_placeholder.container():
-                fig_map = plot_tour(tsp, best_tour, f"Najlepsza trasa (Gen {generation + 1})")
-                st.pyplot(fig_map)
-                plt.close(fig_map)
-            
-            # Wykres zbieżności
-            with chart_placeholder.container():
-                fig_chart = plot_convergence(history, "Zbieżność algorytmu")
-                st.pyplot(fig_chart)
-                plt.close(fig_chart)
-            
-            # Metryki
-            elapsed_time = time.time() - start_time
-            improvement = ((initial_distance - best_distance) / initial_distance * 100) if initial_distance else 0
-            optimal = OPTIMAL_SOLUTIONS.get(st.session_state.dataset, None)
-            diff_from_optimal = best_distance - optimal if optimal else None
-            
-            with metrics_placeholder.container():
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Najlepsza odległość", f"{best_distance:.2f}")
-                    st.metric("Generacja", f"{generation + 1}/{generations}")
-                with col2:
-                    if optimal and diff_from_optimal is not None:
-                        st.metric("Różnica od optimum", f"{diff_from_optimal:.2f}", 
-                                 delta=f"{(diff_from_optimal/optimal*100):.2f}%", delta_color="inverse")
-                    st.metric("Czas wykonania", f"{elapsed_time:.2f}s")
-                with col3:
-                    st.metric("Poprawa", f"{improvement:.2f}%", delta=f"{improvement:.1f}%")
-                    if optimal:
-                        st.metric("Optimum", f"{optimal}")
-            
-            # Progress bar
-            progress = (generation + 1) / generations
-            progress_bar.progress(progress)
-            status_text.text(f"Generacja {generation + 1}/{generations} - Dystans: {best_distance:.2f}")
-        
-        # Elityzm -> ci mają gwarantowane przejście do następnej generacji
-        elites = population_sorted[:elitism_count]
-        remaining_count = population_size - elitism_count
-
-        parents = []
-
-        while len(parents) < remaining_count:
-            # Selekcja
-            if selection_method == "Rank Selection":
-                parents.extend(rank_select(population, tsp, rank_size))
-            elif selection_method == "Tournament Selection":
-                parents.extend(tournament_select(population, tsp, tournament_size))
-            else:  # Roulette
-                parents.extend(roulette_select(population, tsp, roulette_size))
-
-        # Krzyżowanie
-        offspring = []
-        for i in range(0, len(parents), 2):
-            if random.random() < crossover_prob:
-                child1, child2 = crossover_func(parents[i % len(parents)], parents[(i + 1) % len(parents)])
-                offspring.extend([child1, child2])
-            else:
-                offspring.extend([parents[i % len(parents)], parents[(i + 1) % len(parents)]])
-
-        # Mutacja
-        mutated = [mutation_func(tour, mutation_prob) for tour in offspring]
-
-        # Nowa populacja
-        population = elites + rank_select(mutated, tsp, remaining_count)
-
-    total_time = time.time() - start_time
-    
-    return best_tour, best_distance, history, total_time
+def load_experiments() -> pd.DataFrame:
+    if RESULTS_FILE.exists():
+        return pd.read_csv(RESULTS_FILE)
+    return pd.DataFrame()
 
 # SIDEBAR
 st.sidebar.title("⚙️ Parametry algorytmu")
@@ -252,7 +106,7 @@ else:  # Roulette Selection
 st.sidebar.markdown("---")
 
 # Przycisk START
-start_button = st.sidebar.button("🚀 START", type="primary", use_container_width=True)
+start_button = st.sidebar.button("🚀 START", type="primary", width='stretch')
 
 # MAIN AREA
 st.title("🧬 Algorytm Genetyczny dla TSP")
@@ -267,14 +121,26 @@ if 'history_log' not in st.session_state:
 
 if start_button:
     st.session_state.dataset = dataset
-    
+
     # Ładowanie problemu
     try:
         tsp = TSPProblem(DATASETS[dataset])
     except Exception as e:
         st.error(f"Błąd ładowania datasetu: {e}")
         st.stop()
-    
+
+    if tsp.problem.edge_weight_type == "ATT":
+        problem_type = "ATT48"
+    elif tsp.problem.edge_weight_type == "EUC_2D":
+        problem_type = "Berlin52"
+    else:
+        problem_type = None
+
+    if problem_type:
+        optimal_distance = tsp.tour_length(OPTIMAL_SOLUTIONS[problem_type])
+    else:
+        optimal_distance = None
+
     # Kontenery na wizualizacje
     col1, col2 = st.columns(2)
     
@@ -315,7 +181,9 @@ if start_button:
             chart_placeholder=chart_placeholder,
             metrics_placeholder=metrics_placeholder,
             progress_bar=progress_bar,
-            status_text=status_text
+            status_text=status_text,
+            elitism_percent=elitism_percent,
+            optimal_distance=optimal_distance
         )
     
     # Zapisz do historii porównań
@@ -334,11 +202,10 @@ if start_button:
         st.metric("Najlepsza odległość", f"{best_distance:.2f}")
     
     with col2:
-        optimal = OPTIMAL_SOLUTIONS.get(dataset, None)
-        if optimal:
-            diff = best_distance - optimal
+        if optimal_distance:
+            diff = best_distance - optimal_distance
             st.metric("Różnica od optimum", f"{diff:.2f}", 
-                     delta=f"{(diff/optimal*100):.2f}%", delta_color="inverse")
+                     delta=f"{(diff/optimal_distance*100):.2f}%", delta_color="inverse")
     
     with col3:
         st.metric("Całkowity czas", f"{total_time:.2f}s")
@@ -359,17 +226,37 @@ if start_button:
         plt.close(fig_stats)
     
     with tab2:
-        if len(st.session_state.history_log) > 1:
-            fig_comp = plot_comparison(st.session_state.history_log, 
-                                      "Porównanie różnych konfiguracji")
-            st.pyplot(fig_comp)
-            plt.close(fig_comp)
-            
-            if st.button("🗑️ Wyczyść historię porównań"):
-                st.session_state.history_log = {}
-                st.rerun()
+        df = load_experiments()
+
+        if df.empty:
+            st.info ("Brak zapisanych eksperymentów. Uruchom algorytm przynajmniej raz aby zobaczyć historię")
         else:
-            st.info("Uruchom algorytm z różnymi konfiguracjami aby zobaczyć porównanie")
+            # filtrowanie
+            datasets_in_history = df["dataset"].unique().tolist()
+            selected_dataset = st.selectbox("Filtruj po datasecie", ["Wszystkie"] + datasets_in_history)
+
+            df_filtered = df if selected_dataset == "Wszystkie" else df[df["dataset"] == selected_dataset]
+
+            # najlepsze wyniki
+            st.subheader("Najlepsze wyniki")
+            best_per_dataset = df.loc[df.groupby("dataset")["best_distance"].idxmin()]
+            st.dataframe(
+                best_per_dataset[["dataset", "best_distance", "gap_percent", "selection_method", "crossover_method",
+                                  "mutation_method", "total_time_s"]],
+                width='stretch',
+                hide_index=True
+            )
+
+            st.subheader("Historia eksperymentów")
+            st.dataframe(
+                df_filtered.sort_values("timestamp", ascending=False),
+                width='stretch',
+                hide_index=True
+            )
+
+            if st.button("Wyczyść historię"):
+                RESULTS_FILE.unlink(missing_ok=True)
+                st.rerun()
     
     # Historia trasy
     with st.expander("🔍 Zobacz szczegóły trasy"):

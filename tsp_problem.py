@@ -1,22 +1,16 @@
-"""
-tsp_problem.py – warstwa dostępu do TSPLIB:
-ładowanie *.tsp i *.opt.tour (tsplib95), metody distance(u,v),
-tour_length(route), walidacja trasy, konwersja do networkx (opcjonalnie).
-"""
-
 import tsplib95
 from typing import cast
 
 # nearest integer
-def nint(result:float) -> int:
-    return (int(result + 0.5))
+def nearest_int(result:float) -> int:
+    return int(result + 0.5)
 
 # algorytm att
 def att (x1:int, y1:int, x2:int, y2:int) -> int:
     xd = x1 - x2
     yd = y1 - y2
     rij = ((xd*xd + yd*yd) / 10) ** 0.5
-    tij = nint (rij)
+    tij = nearest_int (rij)
     dij = tij + 1 if tij < rij else tij
     return dij
 
@@ -24,11 +18,18 @@ def att (x1:int, y1:int, x2:int, y2:int) -> int:
 def euc_2d (x1: int, y1: int, x2: int, y2: int) -> int:
     xd = x1 - x2
     yd = y1 - y2
-    dij = nint ((xd*xd + yd*yd) ** 0.5)
+    dij = nearest_int ((xd*xd + yd*yd) ** 0.5)
     return dij
 
+def optimal_tour (solution_path ="data/att48.opt.tour") -> list[int]:
+    solution = tsplib95.load(solution_path)
+    if solution.tours is None or len(solution.tours) == 0:
+        raise ValueError("No solution found")
+    tours = cast(list[list[int]], solution.tours)
+    return tours[0]
+
 class TSPProblem:
-    def __init__(self, problem_path = "data/att48.tsp") -> None:
+    def __init__(self, problem_path = "data/att48.tsp_ga") -> None:
         self.problem = tsplib95.load(problem_path)
         self.coordinates = self._extract_coordinates()
 
@@ -52,11 +53,6 @@ class TSPProblem:
             raise NotImplementedError (
                 f"Nieobsługiwany typ odległości: {self.problem.edge_weight_type}"
             )
-    
-    def optimal_tour (self, solution_path = "data/att48.opt.tour") -> list[int]:
-        solution = tsplib95.load(solution_path)
-        tours = cast(list[list[int]], solution.tours)
-        return tours[0]
 
     def tour_length (self, tour: list[int]) -> int:
         total: int = 0

@@ -1,28 +1,15 @@
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
-from typing import cast
 from tsp_problem import TSPProblem
 
-
 def plot_tour(tsp: TSPProblem, tour: list[int], title: str = "Trasa TSP"):
-    """
-    Rysuje mapę trasy TSP
-    
-    Args:
-        tsp: Obiekt TSPProblem z współrzędnymi miast
-        tour: Lista miast w kolejności odwiedzania
-        title: Tytuł wykresu
-        
-    Returns:
-        Figure matplotlib
-    """
+
     fig, ax = plt.subplots(figsize=(8, 8))
     
     # Pobierz współrzędne dla trasy
     x_coords = [tsp.coordinates[city][0] for city in tour]
     y_coords = [tsp.coordinates[city][1] for city in tour]
     
-    # Dodaj pierwszy punkt na końcu aby zamknąć cykl
+    # Dodaj pierwszy punkt na końcu, aby zamknąć cykl
     x_coords.append(x_coords[0])
     y_coords.append(y_coords[0])
     
@@ -44,7 +31,6 @@ def plot_tour(tsp: TSPProblem, tour: list[int], title: str = "Trasa TSP"):
     ax.legend(loc='best')
     
     return fig
-
 
 def plot_convergence(history: list[float], title: str = "Zbieżność algorytmu"):
     """
@@ -89,7 +75,6 @@ def plot_convergence(history: list[float], title: str = "Zbieżność algorytmu"
     
     return fig
 
-
 def plot_comparison(histories: dict[str, list[float]], title: str = "Porównanie metod"):
     """
     Rysuje porównanie zbieżności dla różnych konfiguracji
@@ -118,7 +103,6 @@ def plot_comparison(histories: dict[str, list[float]], title: str = "Porównanie
     
     return fig
 
-
 def plot_statistics(history: list[float], window_size: int = 50):
     """
     Rysuje statystyki zbieżności z ruchomą średnią
@@ -134,7 +118,7 @@ def plot_statistics(history: list[float], window_size: int = 50):
     
     generations = list(range(1, len(history) + 1))
     
-    # Górny wykres - wartości z ruchomą średnią
+    # Górny wykres – wartości z ruchomą średnią
     ax1.plot(generations, history, 'b-', linewidth=1, alpha=0.5, label='Wartości')
     
     if len(history) >= window_size:
@@ -152,7 +136,7 @@ def plot_statistics(history: list[float], window_size: int = 50):
     ax1.grid(True, alpha=0.3)
     ax1.legend()
     
-    # Dolny wykres - poprawa między generacjami
+    # Dolny wykres – poprawa między generacjami
     improvements = [0.0]
     for i in range(1, len(history)):
         improvement = history[i-1] - history[i]
