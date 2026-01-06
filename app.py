@@ -6,7 +6,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import tsp_problem
 from tsp_problem import TSPProblem
-from visualization import plot_statistics
+from visualization import plot_statistics, plot_tour, plot_convergence
 from genetic_algorithm import run_genetic_algorithm, RESULTS_FILE
 
 DATASETS = {
@@ -50,6 +50,48 @@ def load_experiments() -> pd.DataFrame:
     if RESULTS_FILE.exists():
         return pd.read_csv(RESULTS_FILE)
     return pd.DataFrame()
+
+# noinspection PyShadowingNames
+def create_visualisation_callback(tsp: TSPProblem, map_placeholder, chart_placeholder, metrics_placeholder,
+                                  progress_bar, status_text):
+    def on_generation(generation, generations_total, tour, distance, hist, elapsed_time,
+                      initial_distance, opt_distance):
+        with map_placeholder.container():
+            fig_map = plot_tour(tsp, tour, f"Najlepsza trasa (Gen {generation + 1})")
+            st.pyplot(fig_map)
+            plt.close(fig_map)
+
+        # Wykres zbieżności
+        with chart_placeholder.container():
+            fig_chart = plot_convergence(hist, "Zbieżność algorytmu")
+            st.pyplot(fig_chart)
+            plt.close(fig_chart)
+
+        # Metryki
+        improv = ((initial_distance - distance) / initial_distance * 100) if initial_distance else 0
+        diff_from_optimal = distance - opt_distance if opt_distance else None
+
+        with metrics_placeholder.container():
+            column1, column2, column3 = st.columns(3)
+            with column1:
+                st.metric("Najlepsza odległość", f"{distance:.2f}")
+                st.metric("Generacja", f"{generation + 1}/{generations_total}")
+            with column2:
+                if opt_distance and diff_from_optimal is not None:
+                    st.metric("Różnica od optimum", f"{diff_from_optimal:.2f}",
+                      delta=f"{(diff_from_optimal / opt_distance * 100):.2f}%", delta_color="inverse")
+                st.metric("Czas wykonania", f"{elapsed_time:.2f}s")
+            with column3:
+                st.metric("Poprawa", f"{improv:.2f}%", delta=f"{improv:.1f}%")
+                if opt_distance:
+                    st.metric("Optimum", f"{opt_distance}")
+
+        # Progress bar
+        progress = (generation + 1) / generations_total
+        progress_bar.progress(progress)
+        status_text.text(f"Generacja {generation + 1}/{generations_total} - Dystans: {distance:.2f}")
+
+    return on_generation
 
 # SIDEBAR
 st.sidebar.title("⚙️ Parametry algorytmu")
@@ -101,15 +143,17 @@ st.sidebar.markdown("---")
 # Parametry dodatkowe dla metod selekcji
 st.sidebar.subheader("Parametry selekcji")
 if selection_method == "Rank Selection":
-    rank_size = st.sidebar.slider("Rank size", 10, population_size, min(30, population_size), 5)
+    rank_size = st.sidebar.slider(label="Rank size", min_value=10, max_value=population_size,
+                                  value=min(30, population_size), step=5)
     roulette_size = 0
     tournament_size = 0
 elif selection_method == "Tournament Selection":
-    tournament_size = st.sidebar.slider("Tournament size", 2, 10, 3, 1)
+    tournament_size = st.sidebar.slider(label="Tournament size", min_value=2, max_value=10, value=3, step=1)
     rank_size = 0
     roulette_size = 0
 else:  # Roulette Selection
-    roulette_size = st.sidebar.slider("Roulette size", 10, population_size, min(80, population_size), 5)
+    roulette_size = st.sidebar.slider(label="Roulette size", min_value=10, max_value=population_size,
+                                      value=min(80, population_size), step=10)
     rank_size = 0
     tournament_size = 0
 
@@ -187,11 +231,6 @@ if start_button:
             rank_size=rank_size,
             roulette_size=roulette_size,
             tournament_size=tournament_size,
-            map_placeholder=map_placeholder,
-            chart_placeholder=chart_placeholder,
-            metrics_placeholder=metrics_placeholder,
-            progress_bar=progress_bar,
-            status_text=status_text,
             elitism_percent=elitism_percent,
             optimal_distance=optimal_distance,
             problem_type=problem_type
@@ -243,16 +282,16 @@ if start_button:
             st.info ("Brak zapisanych eksperymentów. Uruchom algorytm przynajmniej raz aby zobaczyć historię")
         else:
             # filtrowanie
-            datasets_in_history = df["dataset"].unique().tolist()
+            datasets_in_history = df["problem"].unique().tolist()
             selected_dataset = st.selectbox("Filtruj po datasecie", ["Wszystkie"] + datasets_in_history)
 
-            df_filtered = df if selected_dataset == "Wszystkie" else df[df["dataset"] == selected_dataset]
+            df_filtered = df if selected_dataset == "Wszystkie" else df[df["problem"] == selected_dataset]
 
             # najlepsze wyniki
             st.subheader("Najlepsze wyniki")
-            best_per_dataset = df.loc[df.groupby("dataset")["best_distance"].idxmin()]
+            best_per_dataset = df.loc[df.groupby("problem")["best_distance"].idxmin()]
             st.dataframe(
-                best_per_dataset[["dataset", "best_distance", "gap_percent", "selection_method", "crossover_method",
+                best_per_dataset[["problem", "best_distance", "gap_percent", "selection_method", "crossover_method",
                                   "mutation_method", "total_time_s"]],
                 width='stretch',
                 hide_index=True
