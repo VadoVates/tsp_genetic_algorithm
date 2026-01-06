@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+from typing import cast
 from tsp_problem import TSPProblem
 
 
@@ -100,13 +102,11 @@ def plot_comparison(histories: dict[str, list[float]], title: str = "Porównanie
         Figure matplotlib
     """
     fig, ax = plt.subplots(figsize=(10, 6))
-    
-    colors = plt.cm.tab10.colors
+    cmap = plt.get_cmap('tab10')
     
     for idx, (method_name, history) in enumerate(histories.items()):
+        color = cmap(idx % 10)
         generations = list(range(1, len(history) + 1))
-        color = colors[idx % len(colors)]
-        
         ax.plot(generations, history, linewidth=2, label=method_name, 
                color=color, alpha=0.8)
     
@@ -153,7 +153,7 @@ def plot_statistics(history: list[float], window_size: int = 50):
     ax1.legend()
     
     # Dolny wykres - poprawa między generacjami
-    improvements = [0]
+    improvements = [0.0]
     for i in range(1, len(history)):
         improvement = history[i-1] - history[i]
         improvements.append(improvement)

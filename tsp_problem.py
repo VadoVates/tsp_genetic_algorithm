@@ -5,6 +5,7 @@ tour_length(route), walidacja trasy, konwersja do networkx (opcjonalnie).
 """
 
 import tsplib95
+from typing import cast
 
 # nearest integer
 def nint(result:float) -> int:
@@ -32,25 +33,33 @@ class TSPProblem:
         self.coordinates = self._extract_coordinates()
 
     def _extract_coordinates(self) -> dict[int, tuple[int, int]]:
-        result = {}
+        result: dict[int, tuple[int, int]] = {}
+        coords = cast(dict[int, tuple[float, float]], self.problem.node_coords)
+
         for i in self.problem.get_nodes():
-            result[i] = self.problem.node_coords[i]
+            x, y = coords[i]
+            result[i] = (int(x), int(y))
         return result
-    
-    def distance (self, a, b):
+
+    def distance (self, a, b) -> int:
         x1, y1 = self.coordinates[a]
         x2, y2 = self.coordinates[b]
         if self.problem.edge_weight_type == "ATT":
             return att (x1, y1, x2, y2)
-        if self.problem.edge_weight_type == "EUC_2D":
+        elif self.problem.edge_weight_type == "EUC_2D":
             return euc_2d (x1, y1, x2, y2)
+        else:
+            raise NotImplementedError (
+                f"Nieobsługiwany typ odległości: {self.problem.edge_weight_type}"
+            )
     
     def optimal_tour (self, solution_path = "data/att48.opt.tour") -> list[int]:
         solution = tsplib95.load(solution_path)
-        return solution.tours[0]
+        tours = cast(list[list[int]], solution.tours)
+        return tours[0]
 
     def tour_length (self, tour: list[int]) -> int:
-        total = 0
+        total: int = 0
         """
         Tour i tour[1:] to kolejne elementy listy
         zip() robi krotki par tych elementów, np.:
@@ -58,9 +67,9 @@ class TSPProblem:
         zip(ex, ex[1:]) == (('a', 'b'), ('b', 'c'), ('c', 'd'))
         """
         for u, v in zip (tour, tour[1:]):
-            total += self.distance(u, v)
+            total = self.distance(u, v) + total
             
         if len(tour) > 1:
-            total += self.distance(tour[-1], tour[0])
+            total = self.distance(tour[-1], tour[0]) + total
 
         return total

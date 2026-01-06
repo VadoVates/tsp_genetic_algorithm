@@ -114,6 +114,7 @@ def run_genetic_algorithm(
         
         # Aktualizacja wizualizacji co 10 generacji lub na końcu
         if generation % 10 == 0 or generation == generations - 1:
+            assert best_tour is not None
             # Mapa trasy
             with map_placeholder.container():
                 fig_map = plot_tour(tsp, best_tour, f"Najlepsza trasa (Gen {generation + 1})")
@@ -138,7 +139,7 @@ def run_genetic_algorithm(
                     st.metric("Najlepsza odległość", f"{best_distance:.2f}")
                     st.metric("Generacja", f"{generation + 1}/{generations}")
                 with col2:
-                    if optimal:
+                    if optimal and diff_from_optimal is not None:
                         st.metric("Różnica od optimum", f"{diff_from_optimal:.2f}", 
                                  delta=f"{(diff_from_optimal/optimal*100):.2f}%", delta_color="inverse")
                     st.metric("Czas wykonania", f"{elapsed_time:.2f}s")
@@ -373,7 +374,8 @@ if start_button:
     # Historia trasy
     with st.expander("🔍 Zobacz szczegóły trasy"):
         st.write(f"**Kolejność miast:** {best_tour}")
-        st.write(f"**Liczba miast:** {len(best_tour)}")
+        if best_tour is not None:
+            st.write(f"**Liczba miast:** {len(best_tour)}")
         st.write(f"**Początkowa odległość:** {history[0]:.2f}")
         st.write(f"**Końcowa odległość:** {best_distance:.2f}")
     
