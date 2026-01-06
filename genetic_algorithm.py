@@ -93,9 +93,13 @@ def run_genetic_algorithm(
         problem_type: str,
         on_generation: callable = None, # callback dla UI
         generate_csv: bool = False,
+        seed: int | None = None,
 ) -> tuple[list[int] | None, float, list[float], float]:
     start_time = time.time()
-    random.seed()
+    if seed is None:
+        random.seed()
+    else:
+        random.seed(seed)
 
     cities = list(tsp.coordinates.keys())
     population = initialize_population(cities, population_size)
@@ -154,15 +158,27 @@ def run_genetic_algorithm(
         random.shuffle(parents)
         # Krzyżowanie
         offspring: list[list[int]] = []
-        for i in range(0, len(parents) - 1, 2): # ta magia "-1" to w razie nieparzystości zbioru
+
+        if len(parents) % 2 == 1:
+            last_parent = parents.pop()
+            offspring.append(last_parent[:])
+
+        for i in range(0, len(parents), 2):
+            p1, p2 = parents [i], parents[i + 1]
             if random.random() < crossover_prob:
-                child1, child2 = crossover_func(parents[i], parents[i + 1])
+                child1, child2 = crossover_func(p1, p2)
                 offspring.extend([child1, child2])
             else:
-                offspring.extend([parents[i], parents[i + 1]])
+                offspring.extend([p1[:], p2[:]])
 
         # Mutacja
-        mutated = [mutation_func(tour, mutation_prob) for tour in offspring] [:remaining_count]
+        mutated = [mutation_func(tour, mutation_prob) for tour in offspring]
+
+        if len(mutated) < remaining_count:
+            while len(mutated) < remaining_count:
+                mutated.append(random.choice(mutated)[:])
+
+        mutated = mutated[:remaining_count]
 
         # Nowa populacja
         population = elites + mutated

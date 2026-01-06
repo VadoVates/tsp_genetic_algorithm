@@ -13,7 +13,7 @@ def initialize_population (cities: list[int], population_size: int) -> list[list
 """ SELECTION """
 
 def is_data_ok (pop_len: int, parameter: int, num_select: int):
-    if not pop_len <= 0:
+    if pop_len <= 0:
         raise ValueError("Population must be initialized")
     if parameter < 1 or parameter > pop_len:
         raise ValueError("Parameter out of range")
