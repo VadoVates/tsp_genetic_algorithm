@@ -17,76 +17,105 @@ SOLUTION_PATHS = {
     "Berlin52": "data/berlin52.opt.tour"
 }
 
+def float_range (start:float, stop:float, step:float):
+    result = []
+    current = start
+    while current <= stop + step/2:
+        result.append(round(current,4))
+        current += step
+    return result
 
-def run_batch_tests(
-    datasets: list[str] | None = None,
-    population_sizes: list[int] | None = None,
-    generations_list: list[int] | None = None,
-    mutation_probs: list[float] | None = None,
-    crossover_probs: list[float] | None = None,
-    elitism_percents: list[float] | None = None,
-    selection_methods: list[str] | None = None,
-    crossover_methods: list[str] | None = None,
-    mutation_methods: list[str] | None = None,
-    rank_sizes: list[int] | None = None,
-    tournament_sizes: list[int] | None = None,
-    roulette_sizes: list[int] | None = None,
-    repeats: int = 3
-) -> None:
-    """Uruchamia testy dla wszystkich kombinacji parametrów"""
+def int_range (start:int, stop:int, step:int):
+    return list(range(start, stop + 1, step))
 
-    # Domyślne wartości
-    datasets = datasets or list(DATASETS.keys())
-    population_sizes = population_sizes or [100]
-    generations_list = generations_list or [500]
-    mutation_probs = mutation_probs or [0.1]
-    crossover_probs = crossover_probs or [0.8]
-    elitism_percents = elitism_percents or [10]
-    selection_methods = selection_methods or ["Rank Selection", "Tournament Selection", "Roulette Selection"]
-    crossover_methods = crossover_methods or ["Order Crossover (OX)", "Partially Mapped Crossover (PMX)", "Edge Recombination (ERX)"]
-    mutation_methods = mutation_methods or ["Swap Mutation", "Inversion Mutation", "Scramble Mutation"]
-    rank_sizes = rank_sizes or [30]
-    tournament_sizes = tournament_sizes or [3]
-    roulette_sizes = roulette_sizes or [50]
+CONFIG = {
+    # datasety
+    "datasets": ["ATT48", "Berlin52"],
 
-    # Generuj wszystkie kombinacje
-    combinations = list(itertools.product(
-        datasets,
-        population_sizes,
-        generations_list,
-        mutation_probs,
-        crossover_probs,
-        elitism_percents,
-        selection_methods,
-        crossover_methods,
-        mutation_methods
-    ))
+    # parametry populacji
+    "population_size": int_range(50, 500, 10),
+    "generations": int_range(100, 2000, 50),
+    "elitism_percent": float_range(0, 0.2, 0.01),
 
-    total_tests = len(combinations) * repeats
+    # prawdopodobieństwa
+    "mutation_propablity": float_range(0.01, 0.2, 0.01),
+    "crossover_propablity": float_range(0.5, 1.0, 0.05),
+
+    # metody selekcji
+    "selection_methods": [
+        "Rank Selection",
+        "Tournament Selection",
+        "Roulette Selection"
+    ],
+    "crossover_methods": [
+        "Order Crossover (OX)",
+        "Partially Mapped Crossover (PMX)",
+        "Edge Recombination (ERX)"
+    ],
+    "mutation_methods": [
+        "Swap Mutation",
+        "Inversion Mutation",
+        "Scramble Mutation"
+    ],
+
+    # parametry selekcji
+    "rank_size": int_range(10, 50, 5),
+    "tournament_size": int_range(2, 10, 1),
+    "roulette_size": int_range(10, 50, 10),
+
+    # powtórzeń na kombinację
+    "repeats": 1
+}
+
+def calculate_total_tests(config:dict) -> int:
+    count = (
+            len(config["datasets"]) *
+            len(config["population_size"]) *
+            len(config["generations"]) *
+            len(config["elitism_percent"]) *
+            len(config["mutation_prob"]) *
+            len(config["crossover_prob"]) *
+            len(config["selection_methods"]) *
+            len(config["crossover_methods"]) *
+            len(config["mutation_methods"]) *
+            config["repeats"]
+    )
+    return count
+
+def run_batch_tests(config: dict) -> None:
+    total_tests = calculate_total_tests(config)
     print(f"Łącznie testów: {total_tests}")
-    print(f"Kombinacji: {len(combinations)}, powtórzeń: {repeats}")
+    print(f"Powtórzeń na kombinację: {config['repeats']}")
     print("-" * 60)
 
-    test_num = 0
-    for (dataset, pop_size, gens, mut_prob, cross_prob, elite_pct,
-         sel_method, cross_method, mut_method) in combinations:
+    combinations = list(itertools.product(
+        config["datasets"],
+        config["population_size"],
+        config["generations"],
+        config["elitism_percent"],
+        config["mutation_prob"],
+        config["crossover_prob"],
+        config["selection_methods"],
+        config["crossover_methods"],
+        config["mutation_methods"]
+    ))
 
-        # Załaduj problem i optimum
+    test_num = 0
+    for (dataset, pop_size, gens, elite_pct, mut_prob, cross_prob,
+         sel_method, cross_method, mut_method) in combinations:
         tsp = TSPProblem(DATASETS[dataset])
         optimal = optimal_tour(SOLUTION_PATHS[dataset])
         optimal_distance = tsp.tour_length(optimal)
 
         elitism_count = int(pop_size * elite_pct / 100)
-        rank_size = min(rank_sizes[0], pop_size)
-        tournament_size = tournament_sizes[0]
-        roulette_size = min(roulette_sizes[0], pop_size)
+        rank_size = min(config["rank_size"], pop_size)
+        roulette_size = min(config["roulette_size"], pop_size)
+        tournament_size = config["tournament_size"]
 
-        for repeat in range(repeats):
+        for repeat in range(config["repeats"]):
             test_num += 1
-            print(f"[{test_num}/{total_tests}] {dataset} | {sel_method[:4]}-{cross_method[:3]}-{mut_method[:4]} | "
-                  f"pop={pop_size}, gen={gens} | repeat {repeat + 1}/{repeats}")
 
-            best_tour, best_distance, history, total_time = run_genetic_algorithm(
+            run_genetic_algorithm(
                 tsp=tsp,
                 population_size=pop_size,
                 generations=gens,
@@ -102,29 +131,11 @@ def run_batch_tests(
                 elitism_percent=elite_pct,
                 optimal_distance=optimal_distance,
                 problem_type=dataset,
-                on_generation=None  # bez wizualizacji
+                on_generation=None  # bez wizualizacji!
             )
 
-            gap_percent = (best_distance - optimal_distance) / optimal_distance * 100
-            print(f"    -> distance={best_distance:.0f}, gap={gap_percent:.2f}%, time={total_time:.2f}s")
-
-    print("-" * 60)
-    print("Zakończono! Wyniki w: results/experiments.csv")
-
-
 if __name__ == "__main__":
-    run_batch_tests(
-        datasets=["ATT48", "Berlin52"],
-        population_sizes=[100, 200],
-        generations_list=[500, 1000],
-        elitism_percents=[5, 10],
-        mutation_probs=[0.05, 0.1, 0.15],
-        crossover_probs=[0.7, 0.8, 0.9],
-        selection_methods=["Rank Selection", "Tournament Selection", "Roulette Selection"],
-        crossover_methods=["Order Crossover (OX)", "Partially Mapped Crossover (PMX)", "Edge Recombination (ERX)"],
-        mutation_methods=["Swap Mutation", "Inversion Mutation", "Scramble Mutation"],
-        rank_sizes=[30],
-        tournament_sizes=[3],
-        roulette_sizes=[50],
-        repeats=3
-    )
+    total = calculate_total_tests(CONFIG)
+    print(f"Zaplanowano {total} testów")
+
+    run_batch_tests(CONFIG)
