@@ -2,33 +2,36 @@ import random
 import time
 import streamlit as st
 import matplotlib.pyplot as plt
+import pandas as pd
+import tsp_problem
+from tsp_problem import TSPProblem
+from pathlib import Path
 from visualization import plot_tour, plot_convergence
 from operators import (
-    initialize_population, fitness, rank_select, tournament_select,
+    initialize_population, rank_select, tournament_select,
     roulette_select, order_crossover, partially_mapped_crossover,
     edge_recombination_crossover, swap_mutation, inversion_mutation,
     scramble_mutation
 )
-import pandas as pd
-from pathlib import Path
-import tsp_problem
+
+""" FITNESS / FUNKCJA CELU """
+
+# zwraca długość trasy (im krótsza, tym lepsza)
+def fitness (tour: list[int], tsp: TSPProblem) -> int:
+    return tsp.tour_length(tour)
 
 RESULTS_FILE = Path("results/experiments.csv")
 
-SOLUTION_PATHS = {
-    "ATT48": "data/att48.opt.tour",
-    "Berlin52": "data/berlin52.opt.tour"
-}
+def _fitness_cache (population: list[list[int]], tsp: TSPProblem) -> dict[int, int]:
+    cache: dict[int, int] = {}
+    for tour in population:
+        cache[id(tour)] = fitness(tour, tsp)
+    return cache
 
-OPTIMAL_SOLUTIONS = {
-    "ATT48": tsp_problem.optimal_tour(SOLUTION_PATHS["ATT48"]),
-    "Berlin52": tsp_problem.optimal_tour(SOLUTION_PATHS["Berlin52"])
-}
-
-def save_experiment (dataset: str, best_distance: float, total_time: float, generations: int,
+def save_experiment (problem_type: str, best_distance: float, total_time: float, generations: int,
                      population_size: int, mutation_prob: float, crossover_prob: float,
                      elitism_percent: float, selection_method: str, crossover_method: str,
-                     mutation_method: str, initial_distance: float, history: list[float], optimal_distance: int):
+                     mutation_method: str, initial_distance: float, history: list[float], optimal_distance: int | None) -> None:
 
     RESULTS_FILE.parent.mkdir(exist_ok=True, parents=True)
 
@@ -36,7 +39,7 @@ def save_experiment (dataset: str, best_distance: float, total_time: float, gene
 
     row = {
         "timestamp": time.time(),
-        "dataset": dataset,
+        "problem": problem_type,
         "best_distance": best_distance,
         "optimal_distance": optimal_distance,
         "gap_percent": (best_distance - optimal_distance) / optimal_distance * 100 if optimal_distance is not None else None,
@@ -82,11 +85,11 @@ def run_genetic_algorithm(
         progress_bar,
         status_text,
         elitism_percent: float,
-        optimal_distance: int
+        optimal_distance: int | None,
+        problem_type: str
 ):
 
     random.seed()
-    """Główna pętla algorytmu genetycznego z wizualizacją na żywo"""
 
     cities = list(tsp.coordinates.keys())
     population = initialize_population(cities, population_size)
@@ -115,9 +118,10 @@ def run_genetic_algorithm(
     mutation_func = mutation_methods[mutation_method]
 
     for generation in range(generations):
+        fitness_cache = _fitness_cache(population, tsp)
+
         # Ocena fitness
-        population_sorted = sorted(population, key=lambda distance: fitness(distance, tsp))
-        # rank_select(population, tsp, population_size))
+        population_sorted = sorted(population, key=lambda tour: fitness_cache[id(tour)])
 
         current_best_tour = population_sorted[0]
         current_best_distance = fitness(current_best_tour, tsp)
@@ -175,36 +179,32 @@ def run_genetic_algorithm(
         elites: list[list[int]] = population_sorted[:elitism_count]
         remaining_count = population_size - elitism_count
 
-        parents = []
-
-        while len(parents) < remaining_count:
-            # Selekcja
-            if selection_method == "Rank Selection":
-                parents.extend(rank_select(population, tsp, rank_size))
-            elif selection_method == "Tournament Selection":
-                parents.extend(tournament_select(population, tsp, tournament_size))
-            else:  # Roulette
-                parents.extend(roulette_select(population, tsp, roulette_size))
+        # Selekcja
+        if selection_method == "Rank Selection":
+            parents = rank_select(population, fitness_cache, rank_size, remaining_count)
+        elif selection_method == "Tournament Selection":
+            parents = tournament_select(population, fitness_cache, tournament_size, remaining_count)
+        else:  # Roulette
+            parents = roulette_select(population, fitness_cache, roulette_size, remaining_count)
 
         random.shuffle(parents)
         # Krzyżowanie
         offspring = []
-        for i in range(0, len(parents), 2):
+        for i in range(0, len(parents) - 1, 2): # ta magia "-1" to w razie nieparzystości zbioru
             if random.random() < crossover_prob:
-                child1, child2 = crossover_func(parents[i % len(parents)], parents[(i + 1) % len(parents)])
+                child1, child2 = crossover_func(parents[i], parents[i + 1])
                 offspring.extend([child1, child2])
             else:
-                offspring.extend([parents[i % len(parents)], parents[(i + 1) % len(parents)]])
+                offspring.extend([parents[i], parents[i + 1]])
 
         # Mutacja
-        mutated = [mutation_func(tour, mutation_prob) for tour in offspring]
+        mutated = [mutation_func(tour, mutation_prob) for tour in offspring] [:remaining_count]
 
         # Nowa populacja
-        population = elites + rank_select(mutated, tsp, remaining_count)
+        population = elites + mutated
 
     total_time = time.time() - start_time
-    dataset = tsp.problem.edge_weight_type
-    save_experiment(dataset, best_distance, total_time, generations, population_size,
+    save_experiment(problem_type, best_distance, total_time, generations, population_size,
                     mutation_prob, crossover_prob, elitism_percent, selection_method,
                     crossover_method, mutation_method, initial_distance, history, optimal_distance)
 

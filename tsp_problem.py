@@ -56,12 +56,12 @@ class TSPProblem:
 
     def tour_length (self, tour: list[int]) -> int:
         total: int = 0
-        """
-        Tour i tour[1:] to kolejne elementy listy
-        zip() robi krotki par tych elementów, np.:
-        ex = ("a", "b", "c", "d")
-        zip(ex, ex[1:]) == (('a', 'b'), ('b', 'c'), ('c', 'd'))
-        """
+
+#        Tour i tour[1:] to kolejne elementy listy
+#        zip() robi krotki par tych elementów, np.:
+#        ex = ("a", "b", "c", "d")
+#        zip(ex, ex[1:]) == (('a', 'b'), ('b', 'c'), ('c', 'd'))
+
         for u, v in zip (tour, tour[1:]):
             total = self.distance(u, v) + total
             

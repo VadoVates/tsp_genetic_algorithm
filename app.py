@@ -4,9 +4,25 @@ app.py – Aplikacja Streamlit do wizualizacji algorytmu genetycznego dla TSP
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
+import tsp_problem
 from tsp_problem import TSPProblem
 from visualization import plot_statistics
-from genetic_algorithm import run_genetic_algorithm, RESULTS_FILE, OPTIMAL_SOLUTIONS
+from genetic_algorithm import run_genetic_algorithm, RESULTS_FILE
+
+DATASETS = {
+    "ATT48": "data/att48.tsp",
+    "Berlin52": "data/berlin52.tsp"
+}
+
+SOLUTION_PATHS = {
+    "ATT48": "data/att48.opt.tour",
+    "Berlin52": "data/berlin52.opt.tour"
+}
+
+OPTIMAL_SOLUTIONS = {
+    "ATT48": tsp_problem.optimal_tour(SOLUTION_PATHS["ATT48"]),
+    "Berlin52": tsp_problem.optimal_tour(SOLUTION_PATHS["Berlin52"])
+}
 
 # Konfiguracja strony
 st.set_page_config(
@@ -29,12 +45,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
-# Optima dla datasetów
-DATASETS = {
-    "ATT48": "data/att48.tsp",
-    "Berlin52": "data/berlin52.tsp"
-}
 
 def load_experiments() -> pd.DataFrame:
     if RESULTS_FILE.exists():
@@ -183,7 +193,8 @@ if start_button:
             progress_bar=progress_bar,
             status_text=status_text,
             elitism_percent=elitism_percent,
-            optimal_distance=optimal_distance
+            optimal_distance=optimal_distance,
+            problem_type=problem_type
         )
     
     # Zapisz do historii porównań

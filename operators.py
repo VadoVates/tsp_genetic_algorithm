@@ -1,5 +1,4 @@
-import random
-from tsp_problem import TSPProblem
+import random, bisect
 
 """ INICJALIZACJA POPULACJI """
 
@@ -11,58 +10,73 @@ def create_random_permutation (cities: list[int]) -> list[int]:
 def initialize_population (cities: list[int], population_size: int) -> list[list[int]]:
     return [create_random_permutation(cities) for _ in range (population_size)]
 
-""" FITNESS / FUNKCJA CELU """
-
-# zwraca długość trasy (im krótsza, tym lepsza)
-def fitness (tour: list[int], tsp: TSPProblem) -> int:
-    return tsp.tour_length(tour)
-
-# odwrócenie logiki -> dużo kilometrów = zły wynik, ale pierwszy na liście
-def fitness_normalized (tour: list[int], tsp: TSPProblem, worst_score: int):
-    return worst_score - fitness(tour, tsp) + 1
-
 """ SELECTION """
 
-def rank_select (population_in: list[list[int]], tsp: TSPProblem, rank_size: int
-                 ) -> list[list[int]]:
-    population = population_in[:]
-    return (sorted(population, key=lambda tour: fitness(tour, tsp))
-            [:rank_size])
+def is_data_ok (population_in: list[list[int]], parameter: int, num_select: int):
+    if not population_in:
+        raise ValueError("Population must be initialized")
+    if parameter < 1 or parameter > len(population_in):
+        raise ValueError("Parameter out of range")
+    if num_select < 1:
+        raise ValueError("Number of selection out of range")
 
-def tournament_select (population: list[list[int]], tsp: TSPProblem,
-                       tournament_size: int = 3) -> list[list[int]]:
-    if not population:
-        raise ValueError ("population is empty")
-    if not (1 <= tournament_size <= len(population)):
-        tournament_size = len(population)
+def rank_select (population_in: list[list[int]], fitness_cache: dict[int, int], rank_size: int,
+                 num_select: int = 1) -> list[list[int]]:
+    is_data_ok (population_in, rank_size, num_select)
 
-    contenders = random.sample(population, tournament_size)
-    winner = min (contenders, key=lambda tour: fitness(tour, tsp))
+    # 1) top rank_size (ranking by fitness)
+    ranked = sorted(population_in, key=lambda tour: fitness_cache[id(tour)])
+    pool = ranked[:rank_size]  # najlepszy na index 0
 
-    return [winner]
-
-def roulette_select (population: list[list[int]], tsp: TSPProblem,
-                     roulette_selection_size: int) -> list[list[int]]:
-    if roulette_selection_size < 1 or roulette_selection_size > len(population):
-        raise ValueError ("roulette_selection_size out of range")
-
-    contenders = random.sample(population, roulette_selection_size)
-    worst_score = max(fitness(tour, tsp) for tour in contenders)
-    fitness_list = [fitness_normalized(tour, tsp, worst_score) for tour in contenders]
-
-    fitness_accumulated = []
-    total = 0
-    for fit in fitness_list:
-        total+=fit
-        fitness_accumulated.append(total)
+    # wagi po randze: najlepszy ma największą wagę = rank_size, najgorszy = 1
+    cum = []
+    acc = 0
+    for w in range(rank_size, 0, -1):
+        acc += w
+        cum.append(acc)
+    total = cum[-1]
 
     selected = []
-    for _ in range (len(contenders)):
-        r = random.randint (1, total)
-        for i, accumulation in enumerate (fitness_accumulated):
-            if r <= accumulation:
-                selected.append(contenders[i])
-                break
+    for _ in range(num_select):
+        r = random.randint(1, total)
+        i = bisect.bisect_left(cum, r)
+        selected.append(pool[i])
+    return selected
+
+def tournament_select (population_in: list[list[int]], fitness_cache: dict[int, int],
+                       tournament_size: int = 3, num_select: int = 1) -> list[list[int]]:
+    is_data_ok (population_in, tournament_size, num_select)
+
+    winners: list[list[int]] = []
+    for _ in range (num_select):
+        contenders = random.sample(population_in, tournament_size)
+        winner = min (contenders, key=lambda tour: fitness_cache[id(tour)])
+        winners.append(winner)
+    return winners
+
+def roulette_select (population_in: list[list[int]], fitness_cache: dict[int, int],
+                     roulette_selection_size: int, num_select: int = 1) -> list[list[int]]:
+    is_data_ok(population_in, roulette_selection_size, num_select)
+
+    selected: list[list[int]] = []
+
+    for _ in range (num_select):
+        contenders = random.sample(population_in, roulette_selection_size)
+
+        scores = [fitness_cache[id(tour)] for tour in contenders]
+        worst = max(scores)
+
+        weights = [(worst - score) + 1 for score in scores]
+
+        total = 0
+        accumulated: list[int] = []
+        for weight in weights:
+            total += weight
+            accumulated.append(total)
+
+        r = random.randint(1, total)
+        i = bisect.bisect_left(accumulated, r)
+        selected.append(contenders[i])
 
     return selected
 
