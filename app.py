@@ -218,6 +218,8 @@ if start_button:
     
     # Uruchomienie algorytmu
     with st.spinner("Optymalizacja w toku..."):
+        on_generation_callback = create_visualisation_callback(tsp, map_placeholder, chart_placeholder,
+                                                               metrics_placeholder, progress_bar, status_text)
         best_tour, best_distance, history, total_time = run_genetic_algorithm(
             tsp=tsp,
             population_size=population_size,
@@ -233,7 +235,8 @@ if start_button:
             tournament_size=tournament_size,
             elitism_percent=elitism_percent,
             optimal_distance=optimal_distance,
-            problem_type=problem_type
+            problem_type=problem_type,
+            on_generation=on_generation_callback
         )
     
     # Zapisz do historii porównań

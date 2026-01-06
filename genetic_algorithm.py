@@ -132,14 +132,13 @@ def run_genetic_algorithm(
             on_generation(
                 generation=generation,
                 generations_total=generations,
-                best_tour=best_tour,
-                best_distance=best_distance,
-                history=history,
+                tour=current_best_tour,
+                distance=current_best_distance,
+                hist=history,
                 elapsed_time=elapsed_time,
                 initial_distance=initial_distance,
-                optimal_distance=best_distance,
+                opt_distance=optimal_distance
             )
-
         # Elityzm -> ci mają gwarantowane przejście do następnej generacji
         elites: list[list[int]] = population_sorted[:elitism_count]
         remaining_count = population_size - elitism_count
