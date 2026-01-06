@@ -89,10 +89,10 @@ def run_genetic_algorithm(
         rank_size: int,
         roulette_size: int,
         tournament_size: int,
-        elitism_percent: float,
         optimal_distance: int | None,
         problem_type: str,
-        on_generation: callable = None # callback dla UI
+        on_generation: callable = None, # callback dla UI
+        generate_csv: bool = False,
 ) -> tuple[list[int] | None, float, list[float], float]:
     start_time = time.time()
     random.seed()
@@ -100,7 +100,6 @@ def run_genetic_algorithm(
     cities = list(tsp.coordinates.keys())
     population = initialize_population(cities, population_size)
 
-    history: list[float] = []
     best_tour: list[int] = []
     best_distance = float('inf')
     initial_distance: float | None = None
@@ -122,8 +121,9 @@ def run_genetic_algorithm(
         if current_best_distance < best_distance:
             best_distance = current_best_distance
             best_tour = current_best_tour[:]
-
-        history.append(best_distance)
+        history: list[float] = []
+        if generate_csv:
+            history.append(best_distance)
 
         # Aktualizacja wizualizacji co 10 generacji lub na końcu
         if on_generation and (generation % 10 == 0 or generation == generations - 1):
@@ -168,8 +168,9 @@ def run_genetic_algorithm(
         population = elites + mutated
 
     total_time = time.time() - start_time
-    save_experiment (problem_type, best_distance, total_time, generations, population_size,
-                    mutation_prob, crossover_prob, elitism_percent, selection_method,
-                    crossover_method, mutation_method, initial_distance, history, optimal_distance)
+    if generate_csv:
+        save_experiment (problem_type, best_distance, total_time, generations, population_size,
+                   mutation_prob, crossover_prob, elitism_count, selection_method,
+                   crossover_method, mutation_method, initial_distance, history, optimal_distance)
 
     return best_tour, best_distance, history, total_time

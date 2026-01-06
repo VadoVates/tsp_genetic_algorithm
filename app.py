@@ -233,12 +233,12 @@ if start_button:
             rank_size=rank_size,
             roulette_size=roulette_size,
             tournament_size=tournament_size,
-            elitism_percent=elitism_percent,
             optimal_distance=optimal_distance,
             problem_type=problem_type,
-            on_generation=on_generation_callback
+            on_generation=on_generation_callback,
+            generate_csv=True
         )
-    
+
     # Zapisz do historii porównań
     config_name = f"{selection_method[:4]}-{crossover_method[:2]}-{mutation_method[:4]}"
     st.session_state.history_log[config_name] = history
