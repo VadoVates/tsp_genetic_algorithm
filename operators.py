@@ -12,40 +12,28 @@ def initialize_population (cities: list[int], population_size: int) -> list[list
 
 """ SELECTION """
 
-def is_data_ok (population_in: list[list[int]], parameter: int, num_select: int):
-    if not population_in:
+def is_data_ok (pop_len: int, parameter: int, num_select: int):
+    if not pop_len <= 0:
         raise ValueError("Population must be initialized")
-    if parameter < 1 or parameter > len(population_in):
+    if parameter < 1 or parameter > pop_len:
         raise ValueError("Parameter out of range")
     if num_select < 1:
         raise ValueError("Number of selection out of range")
 
 def rank_select (population_in: list[list[int]], fitness_cache: dict[int, int], rank_size: int,
                  num_select: int = 1) -> list[list[int]]:
-    is_data_ok (population_in, rank_size, num_select)
+    is_data_ok (len(population_in), rank_size, num_select)
 
     # 1) top rank_size (ranking by fitness)
     ranked = sorted(population_in, key=lambda tour: fitness_cache[id(tour)])
-    pool = ranked[:rank_size]  # najlepszy na index 0
+    k = min(rank_size, len(ranked))
+    pool = ranked[:k]  # najlepszy na index 0
 
-    # wagi po randze: najlepszy ma największą wagę = rank_size, najgorszy = 1
-    cum = []
-    acc = 0
-    for w in range(rank_size, 0, -1):
-        acc += w
-        cum.append(acc)
-    total = cum[-1]
-
-    selected = []
-    for _ in range(num_select):
-        r = random.randint(1, total)
-        i = bisect.bisect_left(cum, r)
-        selected.append(pool[i])
-    return selected
+    return [random.choice(pool)[:] for _ in range(num_select)]
 
 def tournament_select (population_in: list[list[int]], fitness_cache: dict[int, int],
                        tournament_size: int = 3, num_select: int = 1) -> list[list[int]]:
-    is_data_ok (population_in, tournament_size, num_select)
+    is_data_ok (len(population_in), tournament_size, num_select)
 
     winners: list[list[int]] = []
     for _ in range (num_select):
@@ -56,7 +44,7 @@ def tournament_select (population_in: list[list[int]], fitness_cache: dict[int, 
 
 def roulette_select (population_in: list[list[int]], fitness_cache: dict[int, int],
                      roulette_selection_size: int, num_select: int = 1) -> list[list[int]]:
-    is_data_ok(population_in, roulette_selection_size, num_select)
+    is_data_ok(len(population_in), roulette_selection_size, num_select)
 
     selected: list[list[int]] = []
 
