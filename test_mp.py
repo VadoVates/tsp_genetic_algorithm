@@ -53,18 +53,18 @@ def _csv_append_rows(path: Path, rows: list[dict], fieldnames: list[str]) -> Non
 # -------- configs --------
 
 COMMON_CONFIG = {
-    "population_size": int_range(50, 200, 50),       # przykładowo zawężone
-    "generations": int_range(200, 1000, 200),
-    "elitism_percent": float_range(0, 10, 5),
+    "population_size": int_range(100, 400, 100),
+    "generations": int_range(200, 800, 200),
+    "elitism_percent": float_range(5, 10, 5),
     "mutation_prob": [0.02, 0.05, 0.1],
-    "crossover_prob": [0.7, 0.85, 0.95],
-    "repeats": 1
+    "crossover_prob": [0.8, 1.0],
+    "repeats": 3
 }
 
 SELECTION_CONFIGS = {
-    "Rank Selection": {"rank_size": int_range(10, 50, 10)},
-    "Tournament Selection": {"tournament_size": int_range(2, 8, 2)},
-    "Roulette Selection": {"roulette_size": int_range(10, 50, 20)}
+    "Rank Selection": {"rank_size": int_range(40, 100, 20)},
+    "Tournament Selection": {"tournament_size": int_range(2, 10, 4)},
+    "Roulette Selection": {"roulette_size": int_range(80, 220, 80)}
 }
 
 CROSSOVER_METHODS = [

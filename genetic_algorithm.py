@@ -110,7 +110,7 @@ def run_genetic_algorithm(
 
     crossover_func = CROSSOVER_METHODS[crossover_method]
     mutation_func = MUTATION_METHODS[mutation_method]
-
+    history: list[float] = []
     for generation in range(generations):
         fitness_cache = _fitness_cache(population, tsp)
         # Ocena fitness
@@ -125,7 +125,7 @@ def run_genetic_algorithm(
         if current_best_distance < best_distance:
             best_distance = current_best_distance
             best_tour = current_best_tour[:]
-        history: list[float] = []
+
         if generate_csv:
             history.append(best_distance)
 

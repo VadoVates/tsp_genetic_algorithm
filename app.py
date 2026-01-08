@@ -107,8 +107,8 @@ st.sidebar.markdown("---")
 
 # Parametry populacji
 st.sidebar.subheader("Populacja")
-population_size = st.sidebar.slider("Rozmiar populacji", 50, 500, 100, 10)
-generations = st.sidebar.slider("Liczba generacji", 100, 2000, 500, 50)
+population_size = st.sidebar.slider("Rozmiar populacji", 50, 500, 300, 10)
+generations = st.sidebar.slider("Liczba generacji", 100, 2000, 600, 50)
 elitism_percent = st.sidebar.slider("Rozmiar elity (%)", 0, 20, 10, 1)
 elitism_count = int(population_size * elitism_percent / 100)
 
@@ -117,7 +117,7 @@ st.sidebar.markdown("---")
 # Parametry operatorów
 st.sidebar.subheader("Operatory genetyczne")
 mutation_prob = st.sidebar.slider("Prawdopodobieństwo mutacji", 0.01, 0.2, 0.1, 0.01)
-crossover_prob = st.sidebar.slider("Prawdopodobieństwo krzyżowania", 0.5, 1.0, 0.8, 0.05)
+crossover_prob = st.sidebar.slider("Prawdopodobieństwo krzyżowania", 0.5, 1.0, 1.0, 0.05)
 
 st.sidebar.markdown("---")
 
@@ -130,12 +130,12 @@ selection_method = st.sidebar.selectbox(
 
 crossover_method = st.sidebar.selectbox(
     "Metoda krzyżowania",
-    options=["Order Crossover (OX)", "Partially Mapped Crossover (PMX)", "Edge Recombination (ERX)"]
+    options=["Edge Recombination (ERX)", "Order Crossover (OX)", "Partially Mapped Crossover (PMX)"]
 )
 
 mutation_method = st.sidebar.selectbox(
     "Metoda mutacji",
-    options=["Swap Mutation", "Inversion Mutation", "Scramble Mutation"]
+    options=["Inversion Mutation", "Swap Mutation", "Scramble Mutation"]
 )
 
 st.sidebar.markdown("---")
@@ -144,7 +144,7 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("Parametry selekcji")
 if selection_method == "Rank Selection":
     rank_size = st.sidebar.slider(label="Rank size", min_value=10, max_value=population_size,
-                                  value=min(30, population_size), step=5)
+                                  value=min(200, population_size), step=5)
     roulette_size = 0
     tournament_size = 0
 elif selection_method == "Tournament Selection":
