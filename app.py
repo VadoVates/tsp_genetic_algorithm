@@ -59,7 +59,8 @@ section[data-testid="stSidebar"] > div {
 }
 
 div[data-testid="stSidebarHeader"] {
-    height: 0rem !important;
+    height: 2rem !important;
+    margin-bottom: 0rem !important;
 }
 
 hr {
