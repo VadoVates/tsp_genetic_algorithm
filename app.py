@@ -51,7 +51,7 @@ st.markdown("""
 
 .stSidebar {
     padding: 5px !important;
-    width: 24rem;
+    width: 22rem !important;
 }
 section[data-testid="stSidebar"] > div {
     padding-top: 5px !important;
@@ -65,11 +65,7 @@ div[data-testid="stSidebarHeader"] {
 hr {
     margin: 1rem 0rem !important;
 }
-section.main > div {
-    max-width: 1000px;
-    margin-left: auto;
-    margin-right: auto;
-}
+
 .stMainBlockContainer{
     max-width: 1400px;
     margin-left: auto;
