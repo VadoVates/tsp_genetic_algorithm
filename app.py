@@ -32,19 +32,53 @@ st.set_page_config(
 )
 
 # Styl CSS
+# Styl CSS
 st.markdown("""
-    <style>
-    .metric-card {
-        background-color: #f0f2f6;
-        padding: 15px;
-        border-radius: 10px;
-        margin: 5px 0;
-    }
-    .stProgress > div > div > div > div {
-        background-color: #00cc00;
-    }
-    </style>
+<style>
+
+/* ===== METRYKI ===== */
+.metric-card {
+    background-color: red;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 5px 0;
+}
+
+/* ===== PROGRESS BAR ===== */
+.stProgress > div > div > div > div {
+    background-color: #00cc00;
+}
+
+.stSidebar {
+    padding: 5px !important;
+    width: 24rem;
+}
+section[data-testid="stSidebar"] > div {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+}
+
+div[data-testid="stSidebarHeader"] {
+    height: 0rem !important;
+}
+
+hr {
+    margin: 1rem 0rem !important;
+}
+section.main > div {
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.stMainBlockContainer{
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+</style>
 """, unsafe_allow_html=True)
+
 
 def load_experiments() -> pd.DataFrame:
     if RESULTS_FILE.exists():
@@ -112,14 +146,10 @@ generations = st.sidebar.slider("Liczba generacji", 100, 2000, 600, 50)
 elitism_percent = st.sidebar.slider("Rozmiar elity (%)", 0, 20, 10, 1)
 elitism_count = int(population_size * elitism_percent / 100)
 
-st.sidebar.markdown("---")
-
 # Parametry operatorów
 st.sidebar.subheader("Operatory genetyczne")
 mutation_prob = st.sidebar.slider("Prawdopodobieństwo mutacji", 0.01, 0.2, 0.1, 0.01)
 crossover_prob = st.sidebar.slider("Prawdopodobieństwo krzyżowania", 0.5, 1.0, 1.0, 0.05)
-
-st.sidebar.markdown("---")
 
 # Metody
 st.sidebar.subheader("Metody")
@@ -137,8 +167,6 @@ mutation_method = st.sidebar.selectbox(
     "Metoda mutacji",
     options=["Inversion Mutation", "Swap Mutation", "Scramble Mutation"]
 )
-
-st.sidebar.markdown("---")
 
 # Parametry dodatkowe dla metod selekcji
 st.sidebar.subheader("Parametry selekcji")
