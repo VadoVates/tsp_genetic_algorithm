@@ -2,6 +2,5 @@
 **/__pycache__/
 **/.pytest_cache/
 **/.vscode/
-test_result.txt
 **/results/
 /results/
